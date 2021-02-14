@@ -1,17 +1,22 @@
 const UserMapper = require("../persistence/UserMapper");
-
+const UserHelper = require("../persistence/UserHelper");
 let mapper = new UserMapper({ sql: true });
+let userHelper = new UserHelper();
 
 afterAll(() => {
   mapper.destroy();
 });
 
-test("user mapper select by id", async () => {
+test("MAPPER:user mapper select by id", async () => {
   let data = await mapper.selectById(1);
-  console.log(data);
+  console.log("mapper %o", data);
   expect(data[0].id).toBe(1);
 });
 
+test("HELPER: select by id", async () => {
+  let data = await userHelper.selectById(1);
+  console.log("helper :%o", data);
+});
 /*
 test("select Optimized", async () => {
   for (let i = 0; i < 3; i++) {
@@ -26,7 +31,7 @@ test("select Optimized", async () => {
 });
 */
 
-test("select by uuid", async () => {
+test("MAPPER:select by uuid", async () => {
   let data = await mapper.selectByUuid("admin");
   expect(data[0].id).toBe(1);
 });
