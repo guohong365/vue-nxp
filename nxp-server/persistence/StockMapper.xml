@@ -1,0 +1,195 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.StockMapper">
+<resultMap type="com.uc.app.zjjh.domain.Stock" id="stock">
+  <id column="ID" jdbcType="INTEGER" property="id"/>
+  <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+  <result column="WAREHOUSE" jdbcType="INTEGER" property="warehouse"/>
+  <result column="CATEGORY" jdbcType="INTEGER" property="category"/>
+  <result column="MANUFACTURER_NAME" jdbcType="VARCHAR" property="manufacturerName"/>
+  <result column="MANUFACTURER" jdbcType="INTEGER" property="manufacturer"/>
+  <result column="BATCH_NO" jdbcType="VARCHAR" property="batchNo"/>
+  <result column="PRODUCT_DATE" jdbcType="DATE" property="productDate"/>
+  <result column="EXPIRED_DATE" jdbcType="DATE" property="expiredDate"/>
+  <result column="QUANTITY" jdbcType="DECIMAL" property="quantity"/>
+  <result column="COMMENT" jdbcType="VARCHAR" property="comment"/>
+  <result column="EXPIRED" jdbcType="BIT" property="expired"/>
+  <result column="EXPIRING" jdbcType="BIT" property="expiring"/>
+  <result column="LEADING" jdbcType="INTEGER" property="leading"/>
+  <result column="EXCEED_MAX" jdbcType="BIT" property="exceedMaxStock"/>
+  <result column="UNDER_MIN" jdbcType="BIT" property="underMinStock"/>
+  <result column="CATEGORY_NAME" jdbcType="VARCHAR" property="categoryName"/>
+  <result column="WAREHOUSE_NAME" jdbcType="VARCHAR" property="warehouseName"/>
+  <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName"/>
+  <result column="COUNTY_NAME" jdbcType="VARCHAR" property="countyName"/>
+  <result column="UNIT_NAME" jdbcType="VARCHAR" property="unitName"/>
+</resultMap>
+<sql id="selectSql">
+  select 
+  `a`.`ID`, 
+  `a`.`UUID`, 
+  `a`.`WAREHOUSE`, 
+  `a`.`CATEGORY`, 
+  `a`.`MANUFACTURER` as `MANUFACTURER`, 
+  `i`.`VALUE` as `MANUFACTURER_NAME`,
+  `a`.`BATCH_NO`,
+  `a`.`PRODUCT_DATE`, 
+  `a`.`EXPIRED_DATE`, 
+  `a`.`QUANTITY`, 
+  `a`.`COMMENT`,
+  (`a`.`EXPIRED_DATE` &lt;= current_date()) as `EXPIRED`,
+  (DATEDIFF(`a`.`EXPIRED_DATE`, CURRENT_DATE()) &lt;= `e`.`EXPIRED_WARNING_LEAD` and  DATEDIFF(`a`.`EXPIRED_DATE`, CURRENT_DATE()) &gt; 0) as `EXPIRING`, 
+  DATEDIFF(`a`.`EXPIRED_DATE`, CURRENT_DATE()) as `LEADING`,
+  (`a`.`QUANTITY` &gt; `e`.`MAX_STOCK`) as `EXCEED_MAX`,
+  (`a`.`QUANTITY` &lt; `e`.`MIN_STOCK`) as `UNDER_MIN`,
+  `b`.`NAME` as `WAREHOUSE_NAME`, 
+  `c`.`ID` as `CITY`,
+  `c`.`VALUE` as `CITY_NAME`,
+  `d`.`ID` as `COUNTY`, 
+  `d`.`VALUE` as `COUNTY_NAME`,
+  CONCAT_WS(' ', `e`.`NAME`, `f`.`VALUE`, `g`.`VALUE`) as `CATEGORY_NAME`,
+  `h`.`VALUE` as `UNIT_NAME`
+  from `t4_stock` `a` 
+  left join `t4_org` `b` on `b`.`ID` = `a`.`WAREHOUSE` 
+  left join `t4_c_area` `c` on `c`.`ID` = `b`.`CITY`
+  left join `t4_c_area` `d` on `d`.`ID` = `b`.`AREA`
+  left join `t4_category` `e` on `e`.`ID` = `a`.`CATEGORY`
+  left join `t4_c_model` `f` on `f`.`CODE` = `e`.`MODEL`
+  left join `t4_c_specification` `g` on `g`.`CODE` = `e`.`SPECIFICATION`
+  left join `t4_c_unit` `h` on `h`.`CODE` = `e`.`UNIT`
+  left join `t4_c_manufacturer` `i` on `i`.`CODE` = `a`.`MANUFACTURER`
+</sql>
+<sql id="whereSql">
+  <where>
+    <trim prefixOverrides="and">
+      <choose>
+        <when test="queryForm.querySite != null">
+          and `a`.`WAREHOUSE` = #{queryForm.querySite}
+        </when>
+        <otherwise>
+          <choose>
+            <when test="queryForm.queryArea !=null">
+              and b.AREA = #{queryForm.queryArea, jdbcType=INTEGER}
+            </when>
+            <when test="queryForm.queryCity !=null">             
+              and b.CITY = #{queryForm.queryCity, jdbcType=INTEGER}
+            </when>
+          </choose>
+          <if test="queryForm.siteLimits.size() > 0">
+            and `a`.`WAREHOUSE` in (<foreach collection="queryForm.siteLimits" item="site" separator=",">${site}</foreach>)
+          </if>
+        </otherwise>
+      </choose>   
+      <if test="queryForm.queryBatchNo!=null">
+        and `a`.`BATCH_NO` like '%${queryForm.queryBatchNo}%'
+      </if>
+      <if test="queryForm.queryCategory!=null">
+        and `a`.`CATEGORY` = #{queryForm.queryCategory, jdbcType=INTEGER}
+      </if>
+      <if test="queryForm.queryQuantityFrom !=null">
+        and `a`.`QUANTITY` &gt;= #{queryForm.queryQuantityFrom,jdbcType=DECIMAL}
+      </if>
+      <if test="queryForm.queryQuantityTo !=null">
+        and `a`.`QUANTITY` &lt;= #{queryForm.queryQuantityTo, jdbcType=DECIMAL}
+      </if>
+      <if test="queryForm.queryName !=null">
+        and `e`.`NAME` like '%${queryForm.queryName}%'
+      </if>
+      <choose>
+        <when test="queryForm.queryState == 1">
+          and (`a`.`EXPIRED_DATE` &gt; CURRENT_DATE() and `a`.`QUANTITY` &gt; 0)
+        </when>
+        <when test="queryForm.queryState == 2">
+          and (DATEDIFF(`a`.`EXPIRED_DATE`, CURRENT_DATE()) &lt;= `e`.`EXPIRED_WARNING_LEAD` and DATEDIFF(`a`.`EXPIRED_DATE`, CURRENT_DATE()) &gt; 0)
+        </when>
+        <when test="queryForm.queryState == 3">
+          and `a`.`EXPIRED_DATE` &lt;= CURRENT_DATE()
+        </when>              
+      </choose>
+    </trim>
+  </where>
+</sql>
+<sql id="orderBySql">
+  <if test="queryForm.queryOrderByClause!=null and !queryForm.queryOrderByClause.empty">
+    order by ${queryForm.queryOrderByClause}
+  </if>
+</sql>
+<sql id="groupBySql">
+  <if test="queryForm.groupByClause !=null and !queryForm.groupByClause.empty">
+    group by ${queryForm.groupByClause}
+  </if>
+</sql>
+<select id="selectById" parameterType="java.lang.Long" resultMap="stock">
+  <include refid="selectSql" />
+  where `a`.`ID` = #{id, jdbcType=INTEGER}
+</select>
+<select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long">
+  select `ID` from `t4_stock` where `UUID` = #{uuid, jdbcType=VARCHAR}
+</select>
+<select id="selectByUuid" parameterType="java.lang.String" resultMap="stock">
+  <include refid="selectSql" />
+  where `a`.`UUID` = #{uuid, jdbcType=VARCHAR}
+</select>
+<insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.Stock">
+  insert into `t4_stock`
+  (`UUID`, `WAREHOUSE`, `CATEGORY`, `MANUFACTURER`, `BATCH_NO`, `PRODUCT_DATE`, `EXPIRED_DATE`, `QUANTITY`, `COMMENT`)
+  values
+  (#{uuid,jdbcType=VARCHAR}, #{warehouse,jdbcType=INTEGER}, #{category, jdbcType=INTEGER},
+   #{manufacturer, jdbcType=INTEGER}, #{batchNo, jdbcType=VARCHAR}, #{productDate, jdbcType=DATE},
+   #{expiredDate, jdbcType=DATE}, #{quantity, jdbcType=DECIMAL}, #{comment, jdbcType=VARCHAR})
+</insert>
+<update id="updateDetail" parameterType="com.uc.app.zjjh.domain.Stock">
+  update `t4_stock` 
+  set
+  `CATEGORY` = #{category, jdbcType=INTEGER},
+  `MANUFACTURER` = #{manufacturer, jdbcType=INTEGER},
+  `BATCH_NO` = #{batchNo, jdbcType=VARCHAR},
+  `PRODUCT_DATE`=#{productDate,jdbcType=DATE},
+  `EXPIRED_DATE`=#{expiredDate,jdbcType=DATE},
+  `QUANTITY` = #{quantity, jdbcType=DECIMAL},
+  `COMMENT` = #{comment, jdbcType=VARCHAR}
+</update>
+<update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.Stock">
+  update `t4_stock`
+  <set>
+    <if test="category!=null">
+      `CATEGORY` = #{category, jdbcType=INTEGER},
+    </if>
+    <if test="manufacturerId!=null">
+      `MANUFACTURER` = #{manufacturer, jdbcType=INTEGER},
+    </if>
+    <if test="batchNo !=null">
+      `BATCH_NO` = #{batchNo, jdbcType=VARCHAR},
+    </if>
+    <if test="productDate!=null">
+      `PRODUCT_DATE` = #{productDate, jdbcType=DATE},
+    </if>
+    <if test="expiredDate!=null">
+      `EXPIRED_DATE` = #{expiredDate, jdbcType=DATE},
+    </if>
+    <if test="quantity!=null">
+      `QUANTITY` = #{quantity, jdbcType=DECIMAL},
+    </if>
+    <if test="comment !=null">
+      `COMMENT` = #{comment, jdbcType=VARCHAR},
+    </if>
+  </set>
+  where ID = #{id, jdbcType=INTEGER}
+</update>
+<select id="selectCountOptimized" parameterType="map" resultType="java.lang.Long">
+  select COUNT(*)
+  from `t4_stock` `a` 
+  left join `t4_org` `b` on `b`.`ID` = `a`.`WAREHOUSE` 
+  left join `t4_c_area` `c` on `c`.`ID` = `b`.`CITY`
+  left join `t4_c_area` `d` on `d`.`ID` = `b`.`AREA`
+  left join `t4_category` `e` on `e`.`ID` = `a`.`CATEGORY`
+  <include refid="whereSql" />
+</select>
+<select id="selectOptimized" parameterType="map" resultMap="stock">
+  <include refid="selectSql" />
+  <include refid="whereSql" />
+  <include refid="orderBySql" />
+  <include refid="groupBySql" />
+  limit ${offset}, ${count}
+</select>
+</mapper>

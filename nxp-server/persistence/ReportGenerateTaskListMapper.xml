@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper	namespace="com.uc.app.zjjh.persistence.ReportGenerateTaskListMapper">
+  <resultMap type="com.uc.app.zjjh.domain.ReportGenerateTaskItem" id="taskItem">
+  	<id column="ID" jdbcType="INTEGER" property="id"/>
+  	<result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+  	<result column="TYPE" jdbcType="INTEGER" property="type"/>
+  	<result column="YEAR" jdbcType="INTEGER" property="year"/>
+  	<result column="MONTH" jdbcType="INTEGER" property="month"/>
+  	<result column="QUARTER" jdbcType="INTEGER" property="quarter"/>
+  	<result column="GENERATED_TIME" jdbcType="TIMESTAMP" property="generatedTime"/>
+  	<result column="BEGIN_TIME" jdbcType="TIME" property="beginTime"/>
+  	<result column="FINISHED_TIME" jdbcType="TIME" property="finishedTime"/>
+  	<result column="STATE" jdbcType="INTEGER" property="state"/>
+  	<result column="REMARK" jdbcType="VARCHAR" property="remark"/>
+  </resultMap>  
+  
+  <sql id="selectSql">
+     SELECT `ID`, `UUID`, `TYPE`, `YEAR`, `MONTH`, `QUARTER`, `GENERATED_TIME`,
+            `BEGIN_TIME`,  `FINISHED_TIME`,  `STATE`,  `REMARK` 
+     FROM `t4_report_task`
+  </sql>  
+  <sql id="whereSql">
+  	<where>
+  	  <choose>
+  	    <when test="queryForm.queryReportType == 1">
+		   TYPE = 1
+		   <if test="queryForm.queryYearFrom != null">
+		     and YEAR &gt;= #{queryForm.queryYearFrom, jdbcType=INTEGER}
+		   </if>
+		   <if test="queryForm.queryYearTo != null">
+		     and YEAR &lt;= #{queryForm.queryYearTo, jdbcType=INTEGER}
+		   </if>
+		   <if test="queryForm.queryMonthFrom ! = null">
+		     and MONTH &gt;= #{queryForm.queryMonthFrom, jdbcType=INTEGER} 
+		   </if>
+		   <if test="queryForm.queryMonthTo">
+		     and MONTH &lt;= #{queryForm.queryMonthTo, jdbcType=INTEGER}
+		   </if>		   
+		</when>	
+		<when test="queryForm.queryReprotType == 2">
+		  TYPE = 2
+          <if test="queryForm.queryYearFrom != null">
+		    and YEAR &gt;= #{queryForm.queryYearFrom, jdbcType=INTEGER}
+		  </if>
+		  <if test="queryForm.queryYearTo != null">
+		    and YEAR &lt;= #{queryForm.queryYearTo, jdbcType=INTEGER}
+		  </if>
+		  <if test="queryForm.queryQuarterFrom ! = null">
+		    and QUARTER &gt;= #{queryForm.queryQuarterFrom, jdbcType=INTEGER} 
+		  </if>
+		  <if test="queryForm.queryQuarterTo">
+		    and QUARTER &lt;= #{queryForm.queryQuaterTo, jdbcType=INTEGER}
+		  </if>
+		</when>
+		<when test="queryForm.queryReportType == 3">
+		  TYPE = 3
+		  <if test="queryForm.queryYearFrom != null">
+		    and YEAR &gt;= #{queryForm.queryYearFrom, jdbcType=INTEGER}
+		  </if>
+		  <if test="queryForm.queryYearTo != null">
+		    and YEAR &lt;= #{queryForm.queryYearTo, jdbcType=INTEGER}
+		  </if>
+		</when>
+	  </choose>
+  	</where>
+  </sql>
+  <sql id="updateSql">
+    UPDATE `t4_report_task`
+    SET    
+		`GENERATED_TIME` = #{generatedTime, jdbcType=TIMESTAMP},
+		`BEGIN_TIME` = #{beginTime, jdbcType=TIME},
+		`FINISHED_TIME` = #{finishedTime, jdbcType=TIME},
+		`STATE` = #{state, jdbcType=INTEGER},
+		`REMARK` = #{remark, jdbcType=VARCHAR}
+	WHERE `ID` = #{id, jdbcType=INTEGER}
+  </sql>
+  <select id="selectById" parameterType="map" resultMap="taskItem">
+    <include refid="selectSql" />
+    WHERE `ID` = #{id, jdbcType=INTEGER}
+  </select>
+  <select id="selectCountOptimized" parameterType="map" resultType="java.lang.Long">
+  	SELECT count(*) from t4_report_task
+  	<include refid="whereSql" />   
+  </select>
+  <select id="selectOptimized" parameterType="map" resultMap="taskItem">
+  	<include refid="selectSql" />
+  	<include refid="whereSql" />
+  	limit ${offset}, ${count}
+  </select>
+  
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.ReportGenerateTaskItem">
+  	<include refid="updateSql" />
+  </update>  
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.ReportGenerateTaskItem">
+    <include refid="updateSql" />
+  </update>
+  
+</mapper>

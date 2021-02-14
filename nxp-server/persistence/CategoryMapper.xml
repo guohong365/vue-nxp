@@ -1,0 +1,179 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.CategoryMapper">
+	<resultMap type="com.uc.app.zjjh.domain.Category" id="category">
+		<id column="ID" jdbcType="INTEGER" property="id" />
+		<result column="UUID" jdbcType="CHAR" property="uuid" />
+		<result column="NAME" jdbcType="VARCHAR" property="name" />
+		<result column="MODEL" jdbcType="INTEGER" property="model" />
+		<result column="MODEL_NAME" jdbcType="VARCHAR" property="modelName" />
+		<result column="SPECIFICATION" jdbcType="INTEGER" property="specification" />
+		<result column="SPEC_NAME" jdbcType="VARCHAR" property="specName" />
+		<result column="CLASSIFY" jdbcType="INTEGER" property="classify" />
+		<result column="CLASSIFY_NAME" jdbcType="VARCHAR" property="classifyName" />
+		<result column="UNIT" jdbcType="INTEGER" property="unit" />
+		<result column="UNIT_NAME" jdbcType="VARCHAR" property="unitName" />
+		<result column="MAX_STOCK" jdbcType="DECIMAL" property="maxStock" />
+		<result column="MIN_STOCK" jdbcType="DECIMAL" property="minStock" />
+		<result column="STABILITY" jdbcType="BIT" property="stability" />
+		<result column="EXPIRED_WARNING_LEAD" jdbcType="INTEGER" property="expiredWarningLead" />
+		<result column="VALID" jdbcType="BIT" property="valid" />
+		<result column="COMMENT" jdbcType="VARCHAR" property="comment"/>
+		<result column="CANCELABLE" jdbcType="BIT" property="cancelable"/>
+	</resultMap>
+	
+	<sql id="selectSql">
+    select
+    a.ID,
+    a.UUID,
+    a.NAME,
+    a.MODEL,
+    a.SPECIFICATION,
+    a.CLASSIFY,
+    a.UNIT,
+    a.MAX_STOCK,
+    a.MIN_STOCK,
+    a.STABILITY,
+    a.EXPIRED_WARNING_LEAD,
+    a.VALID,
+    a.COMMENT,
+    b.VALUE as MODEL_NAME,
+    c.VALUE as SPEC_NAME,
+    d.VALUE as CLASSIFY_NAME,
+    e.VALUE as UNIT_NAME,
+    (!exists(select 1 from t4_stock where CATEGORY = a.ID) and a.VALID) as CANCELABLE
+    from t4_category a
+    left join t4_c_model b on b.CODE=a.MODEL
+    left join t4_c_specification c on c.CODE=a.SPECIFICATION
+    left join t4_c_classify d on d.CODE = a.CLASSIFY
+    left join t4_c_unit e on e.CODE = a.UNIT
+	</sql>
+	<sql id="whereSql">
+    <where>
+    <trim prefixOverrides="and">
+     <if test="queryForm.queryName != null">
+       and a.NAME like '%${queryForm.queryName}%'
+     </if>
+     <if test="queryForm.queryModel != null">
+       and a.MODEL = #{queryForm.queryModel, jdbcType=INTEGER}
+     </if>
+     <if test="queryForm.querySpecification !=null">
+       and a.SPECIFICATION = #{queryForm.querySpecification, jdbcType=INTEGER}
+     </if>
+     <if test="queryForm.queryClassify != null">
+       and a.CLASSIFY = #{queryForm.queryClassify, jdbcType=INTEGER}
+     </if>
+     <if test="queryForm.queryStability != null">
+       and a.STABILITY = #{queryForm.queryStability, jdbcType=BIT}
+     </if>
+     <if test="queryForm.queryAll != true">
+       and a.VALID
+     </if>
+    </trim>
+    </where>
+	
+	</sql>
+	<sql id="orderSql">
+	  <if test="queryForm.queryOrderByClause != null">
+   order by #{queryForm.queryOrderByClause}
+   </if>
+	</sql>
+	<select id="selectById" resultMap="category" parameterType="java.lang.Long">
+		<include refid="selectSql" />
+		where a.ID=#{id}
+	</select>
+	<select id="selectByUuid" resultMap="category" parameterType="java.lang.String">
+		<include refid="selectSql" />
+		where a.UUID=#{uuid}
+	</select>
+	<select id="selectIdByUuid" resultType="java.lang.Long"	parameterType="java.lang.String">
+		select ID from t4_category where UUID = #{uuid}
+	</select>
+	<select id="selectCountOptimized" parameterType="com.uc.app.zjjh.forms.CategoryQueryForm" resultType="java.lang.Long">
+	  select count(*) from t4_category a
+	  <include refid="whereSql" />
+	</select>
+	<select id="selectOptimized" parameterType="map" resultMap="category">
+	 <include refid="selectSql" />
+	 <include refid="whereSql" />
+    <include refid="orderSql"/>
+	 limit ${offset}, ${count}
+	</select>
+	
+	<insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.Category">
+		insert into t4_category (UUID, NAME, MODEL, SPECIFICATION, CLASSIFY, UNIT,
+		MAX_STOCK, MIN_STOCK, STABILITY, EXPIRED_WARNING_LEAD, VALID, COMMENT)
+		values(UUID(), #{name}, #{model}, ${specification}, #{classify},
+		#{unit}, #{maxStock}, #{minStock}, #{stability},
+		#{expiredWarningLead}, true, #{comment})
+	</insert>
+	<update id="updateDetail" parameterType="com.uc.app.zjjh.domain.Category">
+		update t4_category
+		set
+		NAME = #{name, jdbcType=VARCHAR},
+		MODEL = #{model, jdbcType=INTEGER},
+		SPECIFICATION=#{specification},
+		CLASSIFY=#{classify},
+		UNIT=#{unit},
+		MAX_STOCK=#{maxStock},
+		MIN_STOCK=#{minStock},
+		STABILITY=#{stability},
+		EXPIRED_WARNING_LEAD=#{expiredWarningLead},
+		VALID=#{valid},
+		COMMENT=#{comment}
+		where ID=#{id}
+	</update>
+	<update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.Category">
+		update t4_category
+		<set>
+			<if test="name != null">
+				NAME = #{name},
+			</if>
+			<if test="model != null">
+				MODEL = #{model},
+			</if>
+			<if test="specification != null">
+				SPECIFICATION=#{specification},
+			</if>
+			<if test="classify != null">
+				CLASSIFY=#{classify},
+			</if>
+			<if test="unit">
+				UNIT=#{unit},
+			</if>
+			<if test="maxStock !=null">
+				MAX_STOCK=#{maxStock},
+			</if>
+			<if test="minStock != null">
+				MIN_STOCK=#{minStock},
+			</if>
+			<if test="stability !=null">
+				STABILITY=#{stability},
+			</if>
+			<if test="expiredWarningLead">
+				EXPIRED_WARNING_LEAD=#{expiredWarningLead},
+			</if>
+			<if test="valid !=null">
+				VALID=#{valid}
+			</if>
+			<if test="comment!=null">
+			  COMMENT=#{comment}
+			</if>
+		</set>
+		where ID=#{id}
+	</update>
+	<select id="selectNoDuplicated" parameterType="com.uc.app.zjjh.domain.Category" resultType="java.lang.Boolean">
+	  select count(*) &gt; 0 
+	  from t4_category 
+	  where
+	  CLASSIFY=#{classify} and MODEL=#{model} and SPECIFICATION=#{specification}
+	  <if test="id !=null">
+	  and ID &lt;&gt; #{id}
+	  </if>
+	</select>
+	<select id="selectCategoryInUsing" parameterType="java.lang.Long" resultType="java.lang.Boolean">
+	  select count(*) &gt; 0
+	  from t4_stock
+	  where CATEGORY = #{id, jdbcType=INTEGER}
+	</select>
+</mapper>

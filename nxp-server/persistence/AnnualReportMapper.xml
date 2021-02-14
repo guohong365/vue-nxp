@@ -1,0 +1,216 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.AnnualReportMapper">
+  <resultMap id="annualReportDetail" type="com.uc.app.zjjh.domain.AnnualReportForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="YEAR" jdbcType="INTEGER" property="year" />
+    <result column="CITY" jdbcType="INTEGER" property="city" />
+    <result column="AREA" jdbcType="INTEGER" property="area" />
+    <result column="POPULATION" jdbcType="DECIMAL" property="population" />
+    <result column="EST_DRUGGERS" jdbcType="INTEGER" property="estDruggers" />
+    <result column="EST_HEROIN_USERS" jdbcType="INTEGER" property="estHeroinUsers" />
+    <result column="SENTENCED_DRUGGERS" jdbcType="INTEGER" property="sentencedDruggers" />
+    <result column="HIV_NEW_CASES" jdbcType="INTEGER" property="hivNewCases" />
+    <result column="DRUGGER_HIV_NEW_CASES" jdbcType="INTEGER" property="druggerHivNewCases" />
+    <result column="VCT_NEW_CASES" jdbcType="INTEGER" property="vctNewCases" />
+    <result column="DRUGGER_VCT_NEW_CASES" jdbcType="INTEGER" property="druggerVctNewCases" />
+    <result column="INPUTOR" jdbcType="INTEGER" property="inputer" />
+    <result column="INPUT_TIME" jdbcType="TIMESTAMP" property="inputTime" />
+    <result column="EDITABLE" jdbcType="BIT" property="editable" />
+    <result column="MODIFIER" jdbcType="INTEGER" property="modifier" />
+    <result column="MODIFY_TIME" jdbcType="TIMESTAMP" property="modifyTime" />
+    <result column="HIV_SURVIVED" jdbcType="INTEGER" property="hivSurvived" />
+    <result column="DRUGGER_HIV_SURVIVED" jdbcType="INTEGER" property="druggerHivSurvived" />
+    <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName" />
+    <result column="AREA_NAME" jdbcType="VARCHAR" property="areaName" />
+    <result column="INPUTER_NAME" jdbcType="VARCHAR" property="inputerName" />
+    <result column="MODIFIER_NAME" jdbcType="VARCHAR" property="modifierName" />
+  </resultMap>
+
+  <sql id="selectSql">
+      SELECT 
+        a.ID AS ID,
+        a.UUID AS UUID,
+        a.YEAR AS YEAR,
+        a.CITY AS CITY,
+        a.AREA AS AREA,
+        a.POPULATION AS POPULATION,
+        a.EST_DRUGGERS AS EST_DRUGGERS,
+        a.EST_HEROIN_USERS AS EST_HEROIN_USERS,
+        a.SENTENCED_DRUGGERS AS SENTENCED_DRUGGERS,
+        a.HIV_NEW_CASES AS HIV_NEW_CASES,
+        a.DRUGGER_HIV_NEW_CASES AS DRUGGER_HIV_NEW_CASES,
+        a.VCT_NEW_CASES AS VCT_NEW_CASES,
+        a.DRUGGER_VCT_NEW_CASES AS DRUGGER_VCT_NEW_CASES,
+        a.INPUTER AS INPUTER,
+        a.INPUT_TIME AS INPUT_TIME,
+        a.EDITABLE AS EDITABLE,
+        a.MODIFIER AS MODIFIER,
+        a.MODIFY_TIME AS MODIFY_TIME,
+        a.HIV_SURVIVED AS HIV_SURVIVED,
+        a.DRUGGER_HIV_SURVIVED AS DRUGGER_HIV_SURVIVED,
+        b.VALUE AS CITY_NAME,
+        c.VALUE AS AREA_NAME,
+        d.NAME AS INPUTER_NAME,
+        e.NAME AS MODIFIER_NAME
+    FROM
+        t4_annual_report a
+        LEFT JOIN t4_c_area b ON a.CITY = b.ID
+        LEFT JOIN t4_c_area c ON a.AREA = c.ID
+        LEFT JOIN t4_user d ON a.INPUTER = d.ID
+        LEFT JOIN t4_user e ON a.MODIFIER = e.ID
+  </sql>  
+  <sql id="whereSql">
+  <if test="queryForm != null">
+    <where>
+      <trim prefixOverrides="and">
+        <choose>
+          <when test="queryForm.queryArea != null">
+            and a.AREA = #{queryForm.queryArea,jdbcType=INTEGER}
+          </when>
+          <when test="queryForm.queryCity != null">
+            and a.CITY = #{queryForm.queryCity,jdbcType=INTEGER}
+          </when>
+        </choose>
+        <if test="queryForm.queryInputer != null">
+          and a.INPUTER = #{queryForm.queryInputer,jdbcType=INTEGER}
+        </if>
+        <if test="queryForm.queryYearFrom != null">
+          and a.YEAR &gt;= #{queryForm.queryYearFrom,jdbcType=INTEGER}
+        </if>
+        <if test="queryForm.queryYearTo != null">
+          and a.YEAR &lt;= #{queryForm.queryYearTo,jdbcType=INTEGER}
+        </if>
+      </trim>
+    </where>
+  </if>
+  </sql>
+  <sql id="orderBySql">
+    <if test="queryForm!=null and queryForm.queryOrderByClause!=null and !queryForm.queryOrderByClause.empty">
+      order by ${queryForm.queryOrderByClause}
+    </if>
+  </sql>
+  <select id="selectOptimized" parameterType="map" resultMap="annualReportDetail">
+    <include refid="selectSql" />
+    <include refid="whereSql" />
+    <include refid="orderBySql" />  
+    limit ${offset}, ${count}
+  </select>
+  <select id="selectCountOptimized" parameterType="map" resultType="java.lang.Long">
+    select count(*) from t4_annual_report a
+    <include refid="whereSql" />
+  </select>
+  <select id="selectById" parameterType="java.lang.Long" resultMap="annualReportDetail">
+    <include refid="selectSql" />
+    where a.ID = #{id,jdbcType=INTEGER}
+  </select>
+ 
+  <select id="selectReportExists" parameterType="map" resultType="java.lang.Boolean">
+   select exists(select 1 from t4_annual_report where YEAR=#{year,jdbcType=INTEGER} and CITY={city,jdbcType=INTEGER} and AREA={area, jdbcType=INTEGER}) 
+  </select>
+  
+  <insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.AnnualReportForm">
+      insert into t4_annual_report (
+      UUID, YEAR, CITY,  AREA, POPULATION, EST_DRUGGERS, 
+      EST_HEROIN_USERS, SENTENCED_DRUGGERS, HIV_NEW_CASES, DRUGGER_HIV_NEW_CASES, 
+      VCT_NEW_CASES, DRUGGER_VCT_NEW_CASES, INPUTER, 
+      INPUT_TIME, EDITABLE, MODIFIER, 
+      MODIFY_TIME, HIV_SURVIVED, DRUGGER_HIV_SURVIVED
+      )
+    values (#{uuid,jdbcType=VARCHAR}, #{year,jdbcType=INTEGER}, #{city,jdbcType=INTEGER}, 
+      #{area,jdbcType=INTEGER}, #{population,jdbcType=DECIMAL}, #{estDruggers,jdbcType=INTEGER}, 
+      #{estHeroinUsers,jdbcType=INTEGER}, #{sentencedDruggers,jdbcType=INTEGER},
+      #{hivNewCases,jdbcType=INTEGER}, #{druggerHivNewCases,jdbcType=INTEGER}, 
+      #{vctNewCases,jdbcType=INTEGER}, #{druggerVctNewCases,jdbcType=INTEGER}, #{inputer,jdbcType=INTEGER}, 
+      #{inputTime,jdbcType=TIMESTAMP}, #{editable,jdbcType=BIT}, #{modifier,jdbcType=INTEGER}, 
+      #{modifyTime,jdbcType=TIMESTAMP}, #{hivSurvived,jdbcType=INTEGER}, #{druggerHivSurvived,jdbcType=INTEGER}
+      )
+  </insert>
+  
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.AnnualReportForm">
+      update t4_annual_report
+      set 
+      YEAR = #{year,jdbcType=INTEGER},
+      CITY = #{city,jdbcType=INTEGER},
+      AREA = #{area,jdbcType=INTEGER},
+      POPULATION = #{population,jdbcType=DECIMAL},
+      EST_DRUGGERS = #{estDruggers,jdbcType=INTEGER},
+      EST_HEROIN_USERS = #{estHeroinUsers,jdbcType=INTEGER},
+      SENTENCED_DRUGGERS = #{sentencedDruggers,jdbcType=INTEGER},
+      HIV_NEW_CASES = #{hivNewCases,jdbcType=INTEGER},
+      DRUGGER_HIV_NEW_CASES = #{druggerHivNewCases,jdbcType=INTEGER},
+      VCT_NEW_CASES = #{vctNewCases,jdbcType=INTEGER},
+      DRUGGER_VCT_NEW_CASES = #{druggerVctNewCases,jdbcType=INTEGER},
+      EDITABLE = #{editable,jdbcType=BIT},
+      MODIFIER = #{modifier,jdbcType=INTEGER},
+      MODIFY_TIME = #{modifyTime,jdbcType=TIMESTAMP},
+      HIV_SURVIVED = #{hivSurvived,jdbcType=INTEGER},
+      DRUGGER_HIV_SURVIVED = #{druggerHivSurvived,jdbcType=INTEGER}
+    where ID = #{id,jdbcType=VARCHAR}
+  </update>
+  
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.AnnualReportForm">
+      update t4_annual_report
+    <set>
+      <if test="year != null">
+        YEAR = #{year,jdbcType=INTEGER},
+      </if>
+      <if test="city != null and city != 0">
+        CITY = #{city,jdbcType=INTEGER},
+      </if>
+      <if test="area != null and area != 0">
+        AREA = #{area,jdbcType=VARCHAR},
+      </if>
+      <if test="population != null">
+        POPULATION = #{population,jdbcType=DECIMAL},
+      </if>
+      <if test="estDruggers != null">
+        EST_DRUGGERS = #{estDruggers,jdbcType=INTEGER},
+      </if>
+      <if test="estHeroinUsers != null">
+        EST_HEROIN_USERS = #{estHeroinUsers,jdbcType=INTEGER},
+      </if>
+      <if test="sentencedDruggers != null">
+        SENTENCED_DRUGGERS = #{sentencedDruggers,jdbcType=INTEGER},
+      </if>
+      <if test="hivNewCases != null">
+        HIV_NEW_CASES = #{hivNewCases,jdbcType=INTEGER},
+      </if>
+      <if test="druggerHivNewCases != null">
+        DRUGGER_HIV_NEW_CASES = #{druggerHivNewCases,jdbcType=INTEGER},
+      </if>
+      <if test="vctNewCases != null">
+        VCT_NEW_CASES = #{vctNewCases,jdbcType=INTEGER},
+      </if>
+      <if test="druggerVctNewCases != null">
+        DRUGGER_VCT_NEW_CASES = #{druggerVctNewCases,jdbcType=INTEGER},
+      </if>
+      <if test="editable != null">
+        EDITABLE = #{editable,jdbcType=BIT},
+      </if>
+      <if test="modifier != null">
+        MODIFIER = #{modifier,jdbcType=INTEGER},
+      </if>
+      <if test="modifyTime != null">
+        MODIFY_TIME = #{modifyTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="hivSurvived != null">
+        HIV_SURVIVED = #{hivSurvived,jdbcType=INTEGER},
+      </if>
+      <if test="druggerHivSurvived != null">
+        DRUGGER_HIV_SURVIVED = #{druggerHivSurvived,jdbcType=INTEGER},
+      </if>
+    </set>
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  
+  <select id="selectByUuid" parameterType="java.lang.String" resultMap="annualReportDetail">
+    <include refid="selectSql" />
+    where a.UUID = #{uuid, jdbcType=VARCHAR}
+  </select>
+  
+  <select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long">
+    select ID from t4_annual_report where UUID = #{uuid, jdbcType=VARCHAR}
+  </select>
+</mapper>

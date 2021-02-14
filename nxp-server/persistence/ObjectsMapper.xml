@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.ObjectsMapper">
+  <resultMap id="objectDetail" type="com.uc.app.zjjh.domain.ObjectsForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="CODE" jdbcType="VARCHAR" property="uuid"/>
+    <result column="SEX" jdbcType="VARCHAR" property="sex" />
+    <result column="BIRTHDAY" jdbcType="DATE" property="birthday" />
+    <result column="CITY" jdbcType="INTEGER" property="city" />
+    <result column="AREA" jdbcType="INTEGER" property="area" />
+    <result column="SITE" jdbcType="INTEGER" property="site" />
+    <result column="POSITIVE" jdbcType="BIT" property="positive" />
+    <result column="CAN_TRANS_MMT" jdbcType="BIT" property="canTransMmt" />
+    <result column="CAN_TRANS_ANTI_THERAPY" jdbcType="BIT" property="canTransAntiTherapy" />
+    <result column="CAN_EXAMINE_HIV" jdbcType="BIT" property="canExamineHiv"/>
+    <result column="NATIONALITY" jdbcType="INTEGER" property="nationality"/>
+    <result column="CREATE_TIME" jdbcType="TIMESTAMP" property="createTime"/>
+    <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName"/>
+    <result column="AREA_NAME" jdbcType="VARCHAR" property="areaName"/>
+    <result column="SITE_NAME" jdbcType="VARCHAR" property="siteName"/>
+    <result column="NATION_NAME" jdbcType="VARCHAR" property="nationName"/>
+    <result column="HIV_EXAMINE_STATE" jdbcType="INTEGER" property="hivExamineState"/>
+    <result column="LAST_HIV_EXAMINE_DATE" property="hivExamineDate"/>
+  </resultMap>
+  <sql id="orgOnSql">
+    <choose>
+      <when test="queryForm.querySite !=null">
+        and b.ID=#{queryForm.querySite, jdbcType=INTEGER}
+      </when>
+      <otherwise>
+        <choose>
+          <when test="queryForm.queryArea !=null">
+              and b.AREA = #{queryForm.queryArea,jdbcType=INTEGER}
+          </when>
+          <when test="queryForm.queryCity != null">
+            and b.CITY = #{queryForm.queryCity,jdbcType=INTEGER}
+          </when>
+          </choose>      
+          <if test="queryForm.siteLimits !=null and !queryForm.siteLimits.empty">
+            and b.ID in (<foreach collection="queryForm.siteLimits" item="site" separator=",">${site}</foreach>)
+          </if>  
+      </otherwise>
+    </choose>
+  </sql>  
+  <sql id="whereSql">
+    where b.ID is not null
+	  <if test="queryForm.queryCode != null">
+		  and a.CODE like '%${queryForm.queryCode}%'
+	  </if>
+	  <if test="queryForm.queryNationality != null">
+		  and a.NATIONALITY = #{queryForm.queryNationality, jdbcType=INTEGER}
+	  </if>
+	  <if test="queryForm.queryPositive !=null">
+	    and a.POSITIVE = #{queryForm.queryPositive, jdbcType=BIT}
+	  </if>
+	  <choose>
+	    <when test="queryForm.queryHivExamineState == 1">
+        and f.HIV_RESULT is null
+      </when>
+      <when test="queryForm.queryHivExamineState == 2">
+        and f.HIV_RESULT is not null
+      </when>
+      <when test="queryForm.queryHivExamineState==3">
+        and f.HIV_RESULT = '阴性'
+      </when>
+      <when test="queryForm.queryHivExamineState== 4">
+        and f.HIV_RESULT is not null and f.HIV_RESULT &lt;&gt; '阴性'
+      </when>
+    </choose>  
+  </sql>
+  <sql id="orderBySql">
+    <if test="queryForm.queryOrderByClause!=null and !queryForm.queryOrderByClause.empty">
+      order by ${queryForm.queryOrderByClause}
+    </if>
+  </sql>
+      
+  <select id="selectCountOptimized" parameterType="com.uc.app.zjjh.forms.ObjectsQueryForm" resultType="java.lang.Long">
+  <choose>
+    <when test="queryForm.queryHivExamineState == 1">
+       select count(*) 
+       from t4_objects a
+       left join t4_org b on b.ID = a.SITE
+       <include refid="orgOnSql" />
+       where 
+       b.ID is not null       
+       and !exists(select 1 from t4_work_record t where t.OBJECT_ID = a.ID and t.HIV_RESULT is not null)
+       <if test="queryForm.queryCode != null">
+         and a.CODE like '%${queryForm.queryCode}%'
+       </if>
+       <if test="queryForm.queryNationality != null">
+         and a.NATIONALITY = #{queryForm.queryNationality, jdbcType=INTEGER}
+       </if>
+       <if test="queryForm.queryPositive !=null">
+         and a.POSITIVE = #{queryForm.queryPositive, jdbcType=BIT}
+       </if>
+    </when>
+    <when test="queryForm.queryHivExamineState == 2">
+       select count(*) 
+       from t4_objects a
+       left join t4_org b on b.ID = a.SITE
+       <include refid="orgOnSql" />
+       where 
+       b.ID is not null       
+       and exists(select 1 from t4_work_record t where t.OBJECT_ID=a.ID and t.HIV_RESULT is not null)
+       <if test="queryForm.queryCode != null">
+         and a.CODE like '%${queryForm.queryCode}%'
+       </if>
+       <if test="queryForm.queryNationality != null">
+         and a.NATIONALITY = #{queryForm.queryNationality, jdbcType=INTEGER}
+       </if>
+       <if test="queryForm.queryPositive !=null">
+         and a.POSITIVE = #{queryForm.queryPositive, jdbcType=BIT}
+       </if>
+    </when>
+    <when test="queryForm.queryHivExamineState == 3">
+      select count(distinct a.ID)
+      from t4_objects a 
+      left join t4_org b on b.ID = a.SITE
+      <include refid="orgOnSql" />
+      left join (
+          select 
+            t.OBJECT_ID, 
+            t.HIV_RESULT, 
+            t.HIV_RPT_DATE 
+          from 
+            t4_work_record t
+          where 
+            t.INPUT_TIME=(select max(s.INPUT_TIME) from t4_work_record s where s.OBJECT_ID = t.OBJECT_ID and s.HIV_RESULT is not null)         
+         ) f on f.OBJECT_ID = a.ID
+      where 
+       b.ID is not null       
+       and f.HIV_RESULT ='阴性'
+       <if test="queryForm.queryCode != null">
+         and a.CODE like '%${queryForm.queryCode}%'
+       </if>
+       <if test="queryForm.queryNationality != null">
+         and a.NATIONALITY = #{queryForm.queryNationality, jdbcType=INTEGER}
+       </if>
+       <if test="queryForm.queryPositive !=null">
+         and a.POSITIVE = #{queryForm.queryPositive, jdbcType=BIT}
+       </if>     
+    </when>
+    <when test="queryForm.queryHivExamineState == 4">
+      select count(distinct a.ID)
+      from t4_objects a 
+      left join t4_org b on b.ID = a.SITE
+      <include refid="orgOnSql" />
+      left join (
+          select 
+            t.OBJECT_ID, 
+            t.HIV_RESULT, 
+            t.HIV_RPT_DATE 
+          from 
+            t4_work_record t
+          where 
+            t.INPUT_TIME=(select max(s.INPUT_TIME) from t4_work_record s where s.OBJECT_ID = t.OBJECT_ID and s.HIV_RESULT is not null)         
+         ) f on f.OBJECT_ID = a.ID
+      where 
+       b.ID is not null       
+       and f.HIV_RESULT &lt;&gt; '阴性' and f.HIV_RESULT is not null
+       <if test="queryForm.queryCode != null">
+         and a.CODE like '%${queryForm.queryCode}%'
+       </if>
+       <if test="queryForm.queryNationality != null">
+         and a.NATIONALITY = #{queryForm.queryNationality, jdbcType=INTEGER}
+       </if>
+       <if test="queryForm.queryPositive !=null">
+         and a.POSITIVE = #{queryForm.queryPositive, jdbcType=BIT}
+       </if>     
+    </when>
+    <otherwise>
+      select count(*)
+      from t4_objects a 
+      left join t4_org b on b.ID = a.SITE
+      <include refid="orgOnSql" />      
+      where 
+       b.ID is not null       
+       <if test="queryForm.queryCode != null">
+         and a.CODE like '%${queryForm.queryCode}%'
+       </if>
+       <if test="queryForm.queryNationality != null">
+         and a.NATIONALITY = #{queryForm.queryNationality, jdbcType=INTEGER}
+       </if>
+       <if test="queryForm.queryPositive !=null">
+         and a.POSITIVE = #{queryForm.queryPositive, jdbcType=BIT}
+       </if>
+    </otherwise>
+  </choose>    
+  </select>
+  <select id="selectOptimized" parameterType="com.uc.app.zjjh.forms.ObjectsQueryForm" resultMap="objectDetail">
+    select 
+      a.ID, a.CODE, b.CITY, b.AREA, a.SEX, a.BIRTHDAY, a.SITE, a.NATIONALITY, a.CREATE_TIME, a.POSITIVE as POSITIVE,
+      c.VALUE as CITY_NAME, d.VALUE as AREA_NAME, b.NAME as SITE_NAME, e.VALUE as NATION_NAME,
+      (case when f.HIV_RESULT is null then 0 
+            when f.HIV_RESULT = '阴性' then 1 
+            else 2 end) as HIV_EXAMINE_STATE,
+      f.HIV_RPT_DATE as LAST_HIV_EXAMINE_DATE             
+    from t4_objects a
+    left join t4_org b on b.ID=a.SITE
+    <include refid="orgOnSql" />
+    left join t4_c_area c on c.ID=b.CITY
+    left join t4_c_area d on d.ID=b.AREA
+    left join t4_c_nationality e on e.CODE = a.NATIONALITY
+    left join (
+       select 
+         t.OBJECT_ID, 
+         t.HIV_RESULT, 
+         t.HIV_RPT_DATE 
+       from 
+         t4_work_record t
+       where 
+         t.INPUT_TIME=(select max(s.INPUT_TIME) from t4_work_record s where s.OBJECT_ID = t.OBJECT_ID and s.HIV_RESULT is not null)         
+       ) f on f.OBJECT_ID = a.ID
+    <include refid="whereSql" />
+    <include refid="orderBySql" />    
+    limit ${offset}, ${count}
+  </select>
+  <select id="selectById" parameterType="java.lang.Long" resultMap="objectDetail">
+    select 
+      a.ID, a.CODE, b.CITY, b.AREA, a.SEX, a.BIRTHDAY, a.SITE, a.NATIONALITY, a.CREATE_TIME, a.POSITIVE as POSITIVE,
+      c.VALUE as CITY_NAME, d.VALUE as AREA_NAME, b.NAME as SITE_NAME, e.VALUE as NATION_NAME      
+    from t4_objects a
+    left join t4_org b    on b.ID=a.SITE
+    left join t4_c_area c on c.ID=b.CITY
+    left join t4_c_area d on d.ID=b.AREA
+    left join t4_c_nationality e on e.CODE = a.NATIONALITY    
+    WHERE a.ID=#{id, jdbcType=INTEGER}     
+  </select>
+  
+  <insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.ObjectsForm">
+    insert into t4_objects 
+    (CODE, SEX, BIRTHDAY, POSITIVE, SITE, NATIONALITY)
+    VALUES
+    (#{uuid,jdbcType=VARCHAR},#{sex,jdbcType=VARCHAR},#{birthday,jdbcType=DATE},
+     #{positive,jdbcType=BIT},#{site,jdbcType=INTEGER}, #{nationality,jdbcType=VARCHAR})
+  </insert>
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.ObjectsForm">
+    update t4_objects 
+    set
+      SEX=#{sex,jdbcType=VARCHAR},
+      CODE=#{uuid, jdbcType=VARCHAR},
+      BIRTHDAY=#{birthday,jdbcType=DATE},
+      POSITIVE=#{positive,jdbcType=BIT},
+      SITE=#{site,jdbcType=INTEGER},
+      NATIONALITY=#{nationality,jdbcType=VARCHAR}
+   where ID=#{id,jdbcType=INTEGER} 
+  </update>
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.ObjectsForm">
+    update t4_objects
+    <set>
+      <if test="uuid!=null">
+        CODE=#{uuid,jdbcType=VARCHAR},
+      </if>
+      <if test="sex !=null">
+        SEX=#{sex,jdbcType=VARCHAR},
+      </if>
+      <if test="birthday !=null">
+        BIRTHDAY=#{birthday,jdbcType=DATE},
+      </if>
+      <if test="positive != null">
+        POSITIVE=#{positive,jdbcType=BIT},
+      </if>
+      <if test="site!=null and site != 0">
+        SITE=#{site,jdbcType=INTEGER},
+      </if>
+      <if test="nationality!=null">
+        NATIONALITY=#{nationality,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where ID=#{id,jdbcType=INTEGER} 
+  </update>
+
+  <select id="selectByUuid" parameterType="java.lang.String" resultMap="objectDetail">
+    select 
+    a.ID, 
+    a.CODE, 
+    a.SEX, 
+    a.BIRTHDAY, 
+    a.SITE, 
+    a.NATIONALITY, 
+    a.POSITIVE     
+    from t4_objects a
+    where a.CODE= #{uuid, jdbcType=VARCHAR} 
+  </select>
+  <select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long">
+    select ID from t4_objects WHERE CODE=#{uuid, jdbcType=VARCHAR} 
+  </select>
+  <select id="selectForRecordInput" parameterType="map" resultMap="objectDetail">
+    select 
+    a.ID, 
+    a.CODE, 
+    a.SEX, 
+    a.BIRTHDAY, 
+    a.SITE, 
+    a.NATIONALITY, 
+    a.POSITIVE,
+    !exists(
+      select 1 
+      from t4_work_record t2 
+      where 
+      t2.OBJECT_ID=a.ID 
+      and (t2.TRANS_MMT or t2.ALREADY_IN_MMT) 
+      and (to_days(#{serviceDate, jdbcType=DATE}) - to_days(t2.SERVICE_DATE)) &lt; 90 
+    ) as CAN_TRANS_MMT,
+    (!a.POSITIVE 
+      and !exists(
+      select 1 
+      from t4_work_record t3 
+      where 
+      t3.OBJECT_ID = a.ID 
+      and t3.TRANS_VCT
+      and (t3.HIV_RESULT &lt;&gt; '阴性' or year(t3.HIV_RPT_DATE) = year(#{serviceDate, jdbcType=DATE})) 
+      ) 
+    ) as CAN_EXAMINE_HIV,
+    exists(
+      select 1 
+      from t4_work_record t4 
+      where t4.OBJECT_ID = a.ID 
+      and (a.POSITIVE or (t4.TRANS_VCT and t4.HIV_RESULT &lt;&gt; '阴性')) 
+      and !(t4.TRANS_ANTI_THERAPY and (to_days(#{serviceDate, jdbcType=DATE}) - to_days(t4.SERVICE_DATE) &lt; 180))
+    ) as CAN_TRANS_ANTI_THERAPY    
+    from t4_objects a
+    where a.CODE= #{objectCode, jdbcType=VARCHAR} 
+  </select>
+</mapper>

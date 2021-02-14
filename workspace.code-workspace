@@ -1,0 +1,13 @@
+{
+	"folders": [
+		{
+			"name": "front-end",
+			"path": "nxp-client"
+		},
+		{
+			"name": "back-end",
+			"path": "nxp-server"
+		}
+	],
+	"settings": {}
+}

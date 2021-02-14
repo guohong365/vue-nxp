@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.FunctionMapper">
+  <resultMap id="functionDetail" type="com.uc.app.zjjh.domain.FunctionForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="NAME" jdbcType="VARCHAR" property="name" />
+    <result column="URI" jdbcType="VARCHAR" property="uri" />
+    <result column="DESCRIPTION" jdbcType="VARCHAR" property="description" />
+    <result column="VALID" jdbcType="BIT" property="valid" />
+    <result column="URI_PATTERN" jdbcType="VARCHAR" property="uriPattern" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="Base_Column_List">
+    ID, UUID, NAME, URI, DESCRIPTION, VALID, URI_PATTERN
+  </sql>
+  <select id="selectByExample" parameterType="map" resultMap="functionDetail">
+    select
+    <include refid="Base_Column_List" />
+    from t4_function
+    <if test="example != null">
+      <include refid="Example_Where_Clause" />    
+      <if test="example.orderByClause != null">
+        order by ${example.orderByClause}
+      </if>  
+    </if>
+    limit ${offset}, ${count}
+  </select>
+  <select id="selectById" parameterType="java.lang.Long" resultMap="functionDetail">
+    select 
+    <include refid="Base_Column_List" />
+    from t4_function
+    where ID = #{id,jdbcType=INTEGER}
+  </select>
+
+  <insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.FunctionForm">
+    insert into t4_function (UUID, NAME, URI, DESCRIPTION, URI_PATTERN)
+    values 
+    (#{uuid,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{uri,jdbcType=VARCHAR},
+     #{description,jdbcType=VARCHAR},#{uriPattern,jdbcType=VARCHAR})
+  </insert>
+  <select id="selectCountByExample" parameterType="map" resultType="java.lang.Long">
+    select count(*) from t4_function
+    <if test="example != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.FunctionForm">
+    update t4_function
+    <set>
+      <if test="name != null">
+        NAME = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="uri != null">
+        URI = #{uri,jdbcType=VARCHAR},
+      </if>
+      <if test="description != null">
+        DESCRIPTION = #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="valid != null">
+        VALID = #{valid,jdbcType=BIT},
+      </if>
+      <if test="uriPattern != null">
+        URI_PATTERN = #{uriPattern,jdbcType=VARCHAR},
+      </if>
+    </set>
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.FunctionForm">
+    update t4_function
+    set NAME = #{name,jdbcType=VARCHAR},
+      URI = #{uri,jdbcType=VARCHAR},
+      DESCRIPTION = #{description,jdbcType=VARCHAR},
+      VALID = #{valid,jdbcType=BIT},
+      URI_PATTERN = #{uriPattern,jdbcType=VARCHAR}
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  
+  <select id="selectByUuid" parameterType="java.lang.String" resultMap="functionDetail">
+    select 
+    <include refid="Base_Column_List" />
+    from t4_function
+    where UUID = #{uuid, jdbcType=VARCHAR}
+  </select>
+  <select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long">
+    select ID from t4_function where UUID = #{uuid, jdbcType=VARCHAR}
+  </select>
+</mapper>

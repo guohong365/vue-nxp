@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.MenuMapper">
+  <resultMap id="menuDetail" type="com.uc.app.zjjh.domain.MenuForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="NAME" jdbcType="VARCHAR" property="name" />
+    <result column="FUNC" jdbcType="INTEGER" property="func" />
+    <result column="PARENT" jdbcType="INTEGER" property="parent"/>
+    <result column="SORT" jdbcType="INTEGER" property="order"/>
+    <result column="ICON" jdbcType="VARCHAR" property="icon" />
+    <result column="FUNC_NAME" jdbcType="VARCHAR" property="funcName"/>
+  </resultMap>
+  <sql id="selectSql">
+    select a.`ID`, a.`UUID`, a.`NAME`, a.`FUNC`,b.`NAME` as FUNC_NAME, a.`PARENT`, a.`SORT`, a.`ICON`
+    from t4_menu a
+    left join t4_function b on a.FUNC=b.ID    
+  </sql>
+  <update id="updateMenuStructs" parameterType="map">
+    <foreach collection="menus" item="item" index="index" >
+      update t4_menu 
+        set 
+          PARENT =#{item.parent, jdbcType=INTEGER}, 
+          `SORT` = ${index}
+      where ID=#{item.id, jdbcType=INTEGER}; 
+    </foreach>
+  </update>
+  <select id="selectByExample" parameterType="map" resultMap="menuDetail">
+    <include refid="selectSql" />
+    group by PARENT, ID
+    order by SORT, PARENT, ID
+  </select>  
+  <select id="selectById" parameterType="java.lang.Long" resultMap="menuDetail">
+    <include refid="selectSql" />
+    where a.ID = #{id,jdbcType=INTEGER}
+  </select>
+
+  <insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.MenuForm">
+    insert into t4_menu (`UUID`, `FUNC`, `PARENT`, `NAME`, `SORT`, `ICON`)
+    values (#{uuid,jdbcType=VARCHAR},
+            #{func,jdbcType=INTEGER},
+            #{parent, jdbcType=INTEGER}, 
+            #{name,jdbcType=VARCHAR}, 
+            #{order,jdbcType=INTEGER}, 
+            #{icon,jdbcType=VARCHAR})
+  </insert>
+  <select id="selectCountByExample" parameterType="map" resultType="java.lang.Long">
+    select count(*) from t4_menu
+  </select>
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.MenuForm">
+    update t4_menu
+    <set>
+      <if test="name != null">
+        NAME = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="func != null">
+        FUNC = #{func,jdbcType=INTEGER},
+      </if>
+      <if test="parent != null">
+        PARENT = #{parent,jdbcType=INTEGER},
+      </if>
+      <if test="order != null">
+        `SORT` = #{order,jdbcType=INTEGER},
+      </if>
+      <if test="icon != null">
+        ICON = #{icon, jdbcType=VARCHAR},
+      </if>
+    </set>
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.MenuForm">
+    update t4_menu
+    set `NAME` = #{name,jdbcType=VARCHAR},
+      `ICON` = #{icon,jdbcType=VARCHAR},
+      `FUNC` = #{func,jdbcType=INTEGER},
+      `PARENT` = #{parent,jdbcType=INTEGER},
+      `SORT` = #{order,jdbcType=INTEGER}
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  
+  <select id="selectByUuid" parameterType="java.lang.String" resultMap="menuDetail">
+    <include refid="selectSql" />
+    where a.UUID = #{uuid, jdbcType=VARCHAR}
+  </select>
+  <select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long">
+    select ID from t4_menu where UUID = #{uuid, jdbcType=VARCHAR}
+  </select>
+  <delete id="deleteDetail" parameterType="com.uc.app.zjjh.domain.MenuForm">
+    delete from t4_menu where ID = #{id, jdbcType=INTEGER}
+  </delete>
+</mapper>

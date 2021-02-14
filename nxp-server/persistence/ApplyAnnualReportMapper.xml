@@ -1,0 +1,99 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.ApplyAnnualReportMapper">
+
+	<sql id="Example_Where_Clause">
+		<where>
+			<foreach collection="example.oredCriteria" item="criteria"
+				separator="or">
+				<if test="criteria.valid">
+					<trim prefix="(" prefixOverrides="and" suffix=")">
+						<foreach collection="criteria.criteria" item="criterion">
+							<choose>
+								<when test="criterion.noValue">
+									and ${criterion.condition}
+								</when>
+								<when test="criterion.singleValue">
+									and ${criterion.condition} #{criterion.value}
+								</when>
+								<when test="criterion.betweenValue">
+									and ${criterion.condition} #{criterion.value} and
+									#{criterion.secondValue}
+								</when>
+								<when test="criterion.listValue">
+									and ${criterion.condition}
+									<foreach close=")" collection="criterion.value" item="listItem"
+										open="(" separator=",">
+										#{listItem}
+									</foreach>
+								</when>
+							</choose>
+						</foreach>
+					</trim>
+				</if>
+			</foreach>
+		</where>
+	</sql>
+  <sql id="selectSql">
+   SELECT 
+        a.ID AS ID,
+        a.UUID AS UUID,
+        a.YEAR AS YEAR,
+        a.CITY AS CITY,
+        a.AREA AS AREA,
+        a.POPULATION AS POPULATION,
+        a.EST_DRUGGERS AS EST_DRUGGERS,
+        a.EST_HEROIN_USERS AS EST_HEROIN_USERS,
+        a.SENTENCED_DRUGGERS AS SENTENCED_DRUGGERS,
+        a.HIV_ACC AS HIV_ACC,
+        a.DRUGGER_HIV_ACC AS DRUGGER_HIV_ACC,
+        a.HIV_NEW_CASES AS HIV_NEW_CASES,
+        a.DRUGGER_HIV_NEW_CASES AS DRUGGER_HIV_NEW_CASES,
+        a.VCT_NEW_CASES AS VCT_NEW_CASES,
+        a.DRUGGER_VCT_NEW_CASES AS DRUGGER_VCT_NEW_CASES,
+        a.INPUTER AS INPUTOR,
+        a.INPUT_TIME AS INPUT_TIME,
+        a.EDITABLE AS EDITABLE,
+        a.MODIFIER AS MODIFIER,
+        a.MODIFY_TIME AS MODIFY_TIME,
+        a.HIV_SURVIVED AS HIV_SURVIVED,
+        a.DRUGGER_HIV_SURVIVED AS DRUGGER_HIV_SURVIVED,
+        b.VALUE AS CITY_NAME,
+        c.VALUE AS AREA_NAME,
+        d.NAME AS INPUTER_NAME,
+        e.NAME AS MODIFIER_NAME
+    FROM
+        t4_annual_report a
+        JOIN t4_c_area b ON a.CITY = b.ID
+        JOIN t4_c_area c ON a.AREA = c.ID
+        JOIN t4_user d ON a.INPUTER = d.ID
+        LEFT JOIN t4_user e ON a.MODIFIER = e.ID
+        LEFT JOIN t4_application_detail f on f.RECORD = a.ID 
+    where a.EDITABLE=false and isnull(f.APPLY)
+  </sql>
+
+	<select id="selectByExample" parameterType="map"
+		resultMap="com.uc.app.zjjh.persistence.AnnualReportMapper.annualReportDetail">
+		select *
+		from (
+		  <include refid="selectSql" />
+		) t
+		<if test="example != null">
+		  <include refid="Example_Where_Clause" />
+		  <if test="example.orderByClause!=null">
+			 order by ${example.orderByClause}
+		  </if>
+		</if>  
+		limit ${offset}, ${count}
+	</select>
+	<select id="selectCountByExample" parameterType="map" resultType="java.lang.Long">
+		select count(*)
+		from (
+		  <include refid="selectSql" />
+		) t
+		<if test="example != null">
+		  <include refid="Example_Where_Clause" />
+		</if>  
+	</select>
+
+</mapper>

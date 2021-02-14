@@ -1,0 +1,366 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.ApplyMapper">
+  <resultMap id="applicationDetail" type="com.uc.app.zjjh.domain.ApplyForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="APPLY_TIME" jdbcType="TIMESTAMP" property="applyTime" />
+    <result column="APPLICANT" jdbcType="INTEGER" property="applicant" />
+    <result column="REASON" jdbcType="VARCHAR" property="reason" />
+    <result column="APPROVER" jdbcType="INTEGER" property="approver" />
+    <result column="APPROVE_TIME" jdbcType="TIMESTAMP" property="approveTime" />
+    <result column="STATE" jdbcType="CHAR" property="state" />
+    <result column="SUGGESTION" jdbcType="VARCHAR" property="suggestion" />
+    <result column="TYPE" jdbcType="CHAR" property="type" />
+    <result column="APPLICANT_NAME" jdbcType="VARCHAR" property="applicantName" />
+    <result column="APPROVER_NAME" jdbcType="VARCHAR" property="approverName" />
+    <result column="AREA" jdbcType="INTEGER" property="area" />
+    <result column="CITY" jdbcType="INTEGER" property="city" />
+    <result column="AREA_NAME" jdbcType="VARCHAR" property="areaName" />
+    <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName" />
+    <result column="APPLY_COUNT" jdbcType="INTEGER" property="applyCount" />
+    <result column="EDITABLE" jdbcType="BIT" property="editable" />
+  </resultMap> 
+  <resultMap id="recordDetail" type="com.uc.app.zjjh.domain.WorkRecordForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="EMPLOYEE" jdbcType="VARCHAR" property="employee" />
+    <result column="SERVICE_DATE" jdbcType="DATE" property="serviceDate" />
+    <result column="OBJECT_ID" jdbcType="INTEGER" property="objectId" />
+    <result column="OBJECT_CODE" jdbcType="VARCHAR" property="objectCode"/>
+    <result column="NEEDLE_PROVIDED" jdbcType="INTEGER" property="needleProvided" />
+    <result column="NEEDLE_RECYCLED" jdbcType="INTEGER" property="needleRecycled" />
+    <result column="CONDOMS_PROVIDED" jdbcType="INTEGER" property="condomsProvided" />
+    <result column="IEC_DOC_PROVIDED" jdbcType="INTEGER" property="iecDocProvided" />
+    <result column="INPUTER" jdbcType="INTEGER" property="inputer" />
+    <result column="INPUT_TIME" jdbcType="TIMESTAMP" property="inputTime" />
+    <result column="EDITABLE" jdbcType="BIT" property="editable" />
+    <result column="TRANS_ANTI_THERAPY" jdbcType="BIT" property="transAntiTherapy" />
+    <result column="TRANS_MMT" jdbcType="BIT" property="transMmt" />
+    <result column="TRANS_VCT" jdbcType="BIT" property="transVct" />
+    <result column="HIV_RESULT" jdbcType="VARCHAR" property="hivResult" />
+    <result column="HIV_RPT_DATE" jdbcType="DATE" property="hivRptDate" />
+    <result column="ALREADY_IN_MMT" jdbcType="BIT" property="alreadyInMmt" />
+    <result column="STRANGER" jdbcType="BIT" property="stranger" />
+    <result column="EMPLOYEE_NAME" jdbcType="VARCHAR" property="employeeName" />
+    <result column="INPUTER_NAME" jdbcType="VARCHAR" property="inputerName" />
+    <result column="CITY" jdbcType="INTEGER" property="city" />
+    <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName" />
+    <result column="AREA" jdbcType="INTEGER" property="area" />
+    <result column="AREA_NAME" jdbcType="VARCHAR" property="areaName" />
+    <result column="SITE" jdbcType="INTEGER" property="site" />
+    <result column="SITE_NAME" jdbcType="VARCHAR" property="siteName" />
+    <result column="NATIONALITY" jdbcType="VARCHAR" property="nationality"/>
+    <result column="SEX" jdbcType="VARCHAR" property="sex" />
+    <result column="BIRTHDAY" jdbcType="DATE" property="birthday" />
+  </resultMap>
+    <resultMap id="annualReportDetail" type="com.uc.app.zjjh.domain.AnnualReportForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="YEAR" jdbcType="VARCHAR" property="year" />
+    <result column="CITY" jdbcType="INTEGER" property="city" />
+    <result column="AREA" jdbcType="INTEGER" property="area" />
+    <result column="POPULATION" jdbcType="DECIMAL" property="population" />
+    <result column="EST_DRUGGERS" jdbcType="INTEGER" property="estDruggers" />
+    <result column="EST_HEROIN_USERS" jdbcType="INTEGER" property="estHeroinUsers" />
+    <result column="SENTENCED_DRUGGERS" jdbcType="INTEGER" property="sentencedDruggers" />
+    <result column="HIV_NEW_CASES" jdbcType="INTEGER" property="hivNewCases" />
+    <result column="DRUGGER_HIV_NEW_CASES" jdbcType="INTEGER" property="druggerHivNewCases" />
+    <result column="VCT_NEW_CASES" jdbcType="INTEGER" property="vctNewCases" />
+    <result column="DRUGGER_VCT_NEW_CASES" jdbcType="INTEGER" property="druggerVctNewCases" />
+    <result column="INPUTER" jdbcType="INTEGER" property="inputer" />
+    <result column="INPUT_TIME" jdbcType="TIMESTAMP" property="inputTime" />
+    <result column="EDITABLE" jdbcType="BIT" property="editable" />
+    <result column="MODIFIER" jdbcType="INTEGER" property="modifier" />
+    <result column="MODIFY_TIME" jdbcType="TIMESTAMP" property="modifyTime" />
+    <result column="HIV_SURVIVED" jdbcType="INTEGER" property="hivSurvived" />
+    <result column="DRUGGER_HIV_SURVIVED" jdbcType="INTEGER" property="druggerHivSurvived" />
+    <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName" />
+    <result column="AREA_NAME" jdbcType="VARCHAR" property="areaName" />
+    <result column="INPUTER_NAME" jdbcType="VARCHAR" property="inputerName" />
+    <result column="MODIFIER_NAME" jdbcType="VARCHAR" property="modifierName" />
+  </resultMap>
+  <sql id="Example_Where_Clause">
+    <where>
+      <foreach collection="example.oredCriteria" item="criteria" separator="or">
+        <if test="criteria.valid">
+          <trim prefix="(" prefixOverrides="and" suffix=")">
+            <foreach collection="criteria.criteria" item="criterion">
+              <choose>
+                <when test="criterion.noValue">
+                  and ${criterion.condition}
+                </when>
+                <when test="criterion.singleValue">
+                  and ${criterion.condition} #{criterion.value}
+                </when>
+                <when test="criterion.betweenValue">
+                  and ${criterion.condition} #{criterion.value} and #{criterion.secondValue}
+                </when>
+                <when test="criterion.listValue">
+                  and ${criterion.condition}
+                  <foreach close=")" collection="criterion.value" item="listItem" open="(" separator=",">
+                    #{listItem}
+                  </foreach>
+                </when>
+              </choose>
+            </foreach>
+          </trim>
+        </if>
+      </foreach>
+    </where>
+  </sql>
+  <sql id="selectApplicationSql">
+      SELECT 
+        a.ID AS ID,
+        a.UUID AS UUID,
+        a.APPLY_TIME AS APPLY_TIME,
+        a.APPLICANT AS APPLICANT,
+        a.REASON AS REASON,
+        a.APPROVER AS APPROVER,
+        a.APPROVE_TIME AS APPROVE_TIME,
+        a.STATE AS STATE,
+        a.SUGGESTION AS SUGGESTION,
+        a.TYPE AS TYPE,
+        b.NAME AS APPLICANT_NAME,
+        c.NAME AS APPROVER_NAME,
+        d.AREA AS AREA,
+        d.CITY AS CITY,
+        e.VALUE AS AREA_NAME,
+        f.VALUE AS CITY_NAME,
+        (SELECT 
+             COUNT(*)
+            FROM
+                t4_application_detail s
+            WHERE
+                (s.APPLY = a.ID)) AS APPLY_COUNT,
+        (a.STATE = '申请') AS EDITABLE
+    FROM
+        t4_application a
+        JOIN t4_user b ON a.APPLICANT = b.ID
+        left JOIN t4_user c ON a.APPROVER = b.ID
+        JOIN t4_org d ON b.ORG = d.ID
+        JOIN t4_c_area e ON e.ID = d.AREA
+        JOIN t4_c_area f ON f.ID = d.CITY
+  </sql>
+  <sql id="applicationColumns">
+    ID, UUID, APPLY_TIME, APPLICANT, REASON, APPROVER, APPROVE_TIME, STATE, SUGGESTION, 
+    TYPE, APPLICANT_NAME, APPROVER_NAME, AREA, CITY, AREA_NAME, CITY_NAME, APPLY_COUNT, EDITABLE
+  </sql>
+  
+  <select id="selectByExample" parameterType="map" resultMap="applicationDetail">
+    select
+    <include refid="applicationColumns" />
+    from (
+      <include refid="selectApplicationSql" />
+    ) t
+    <if test="example != null">
+      <include refid="Example_Where_Clause" />
+      <if test="example.orderByClause != null">
+        order by ${example.orderByClause}
+      </if>
+    </if>
+    LIMIT ${offset}, ${count}  
+  </select>
+  
+  <select id="selectById" parameterType="java.lang.Long" resultMap="applicationDetail">
+    select
+    <include refid="applicationColumns" /> 
+    from (
+      <include refid="selectApplicationSql" />
+    ) t
+    where ID=#{id, jdbcType=INTEGER}
+  </select>
+  
+  <select id="selectWorkRecordDetails" parameterType="map" resultMap="recordDetail">
+    select
+      b.ID, 
+      b.SERVICE_DATE, 
+      c.CODE as OBJECT_CODE, 
+      b.INPUT_TIME,
+      e.NAME as EMPLOYEE_NAME, 
+      f.VALUE as CITY_NAME, 
+      g.VALUE as AREA_NAME, 
+      c.NATIONALITY, 
+      d.NAME as SITE_NAME, 
+      c.SEX, 
+      c.BIRTHDAY
+    from t4_application_detail a
+    join t4_work_record b on b.ID=a.RECORD
+    JOIN t4_objects c ON c.ID = b.OBJECT_ID
+    JOIN t4_org d ON d.ID = c.SITE
+    JOIN t4_employee e ON e.ID = b.EMPLOYEE    
+    JOIN t4_c_area f ON f.ID = d.CITY
+    JOIN t4_c_area g ON g.ID = d.AREA            
+    where
+      a.APPLY = #{apply, jdbcType=INTEGER}
+  </select>
+  
+  <select id="selectAnnualReportDetails" parameterType="map" resultMap="annualReportDetail">
+    select 
+      b.ID AS ID,
+      b.YEAR AS YEAR,
+      b.POPULATION AS POPULATION,
+      b.EST_DRUGGERS AS EST_DRUGGERS,
+      b.EST_HEROIN_USERS AS EST_HEROIN_USERS,
+      b.SENTENCED_DRUGGERS AS SENTENCED_DRUGGERS,
+      c.VALUE AS CITY_NAME,
+      d.VALUE AS AREA_NAME 
+    from t4_application_detail a 
+    join t4_annual_report b on b.ID=a.RECORD
+    join t4_c_area c ON b.CITY = c.ID
+    join t4_c_area d ON b.AREA = d.ID
+    where 
+      a.APPLY = #{apply, jdbcType=INTEGER}    
+  </select>
+  
+  <insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.ApplyForm">
+    insert into t4_application 
+    (UUID, APPLICANT, REASON, TYPE)
+    values (
+      #{uuid,jdbcType=VARCHAR}, 
+      #{applicant,jdbcType=INTEGER},
+      #{reason,jdbcType=VARCHAR},
+      #{type,jdbcType=VARCHAR})
+  </insert>
+  <insert id="updateApplicationDetails" parameterType="map">
+    delete from 
+      t4_application_detail 
+    where
+      APPLY=#{apply,jdbcType=VARCHAR};
+    <foreach collection="records" item="record" >
+      insert into t4_application_detail (APPLY, RECORD, STATE)
+      values (#{apply,jdbcType=INTEGER}, #{record.id,jdbcType=INTEGER}, '未完成');
+    </foreach>     
+  </insert>
+
+  <select id="selectCountByExample" parameterType="map" resultType="java.lang.Long">
+    select count(*) from (
+      <include refid="selectApplicationSql" />
+    ) t
+    <if test="example != null">
+      <include refid="Example_Where_Clause" />
+    </if>
+  </select>
+  
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.ApplyForm">
+    update t4_application t1  
+    <if test="state!= '申请'">  <!-- 已批准，逻辑上为审批者操作， 应更新申请记录状态及记录可修改标识 -->
+      left join t4_application_detail t2 on t1.ID=t2.APPLY
+      <if test='type == "工作记录"'> <!-- 外展记录 -->
+      left join t4_work_record t3 on t2.RECORD = t3.ID
+      </if>
+      <if test="type == '年报'"> <!-- 年报 -->
+      left join t4_annual_report t3 on t2.RECORD = t3.ID
+      </if>
+    </if>  
+    <set>
+      t1.STATE = #{state,jdbcType=CHAR},      
+      t1.APPLY_TIME = #{applyTime,jdbcType=DATE},
+      t1.APPLICANT = #{applicant,jdbcType=INTEGER},
+      t1.REASON = #{reason,jdbcType=VARCHAR},
+      t1.TYPE = #{type,jdbcType=CHAR},
+      t1.APPROVER = #{approver,jdbcType=INTEGER},
+      t1.APPROVE_TIME=#{approveTime,jdbcType=INTEGER},
+      t1.SUGGESTION = #{suggestion,jdbcType=VARCHAR},
+      <if test="state ='批准 '">
+        t3.EDITABLE = true  
+      </if>
+    </set>
+    <where>
+      t1.ID = #{id,jdbcType=INTEGER}
+    </where>
+  </update>
+  
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.ApplyForm">
+    update t4_application t1  
+    <if test="state!=null and state!= '申请'">  <!-- 已批准，逻辑上为审批者操作， 应更新申请记录状态及记录可修改标识 -->
+      left join t4_application_detail t2 on t1.ID=t2.APPLY      
+      <if test='type == "工作记录"'> <!-- 外展记录 -->
+      left join t4_work_record t3 on t2.RECORD = t3.ID
+      </if>
+      <if test="type == '年报'"> <!-- 年报 -->
+      left join t4_annual_report t3 on t2.RECORD = t3.ID
+      </if>
+    </if>
+    <set>
+      <if test="applyTime !=null">
+        APPLY_TIME = #{applyTime,jdbcType=DATE},
+      </if>
+      <if test="applicant !=null and applicant != 0"> 
+        APPLICANT = #{applicant,jdbcType=INTEGER},
+      </if>
+      <if test="reason !=null">  
+        REASON = #{reason,jdbcType=VARCHAR},
+      </if>
+      <if test="approver !=null">
+        APPROVER = #{approver,jdbcType=INTEGER},
+      </if>
+      <if test="approveTime!=null">
+        APPROVE_TIME = #{approveTime,jdbcType=DATE},
+      </if>
+      <if test="state!=null">
+        STATE = #{state,jdbcType=INTEGER},
+      </if>
+      <if test="suggestion != null">  
+        SUGGESTION = #{suggestion,jdbcType=VARCHAR},
+      </if>
+      <if test='type =="工作记录" or type =="年报"'>
+        TYPE = #{type,jdbcType=VARCHAR},
+      </if>    
+      <if test="state =='批准'">
+      t3.EDITABLE = true  
+      </if>
+    </set>
+    <where>
+      t1.ID = #{id,jdbcType=INTEGER}
+    </where>  
+  </update>
+  
+  <update id="finishEdit" parameterType="map">
+    update t4_application_detail t1
+    <if test="type=='工作记录'">
+      join t4_work_record t2
+    </if> 
+    <if test="type == '年报'">
+      join t4_annual_report t2
+    </if>
+    on t1.RECORD = t2.ID
+    and t2.ID =#{record,jdbcType=INTEGER}
+    set 
+      t1.state='已完成',
+      t2.EDITABLE=false      
+    where 
+      t1.APPLY = #{apply,jdbcType=INTEGER}
+  </update>
+  
+  <delete id="deleteDetail" parameterType="com.uc.app.zjjh.domain.ApplyForm">
+    delete from t1, t2 
+    using t4_application t1 
+    left join t4_application_detail t2 on t1.ID=t2.APPLY
+    where t1.ID=#{id,jdbcType=INTEGER};  
+  </delete>
+  
+  <insert id="addApplyRecords" parameterType="map">
+    insert into t4_application_detail (APPLY, RECORD) values
+    <foreach collection="idList" item="record" separator=",">
+      (#{apply, jdbcType=INTEGER}, #{record, jdbcType=INTEGER})
+    </foreach>
+  </insert>
+  <delete id="removeRecords" parameterType="map">
+    delete from t4_application_detail where APPLY=#{apply, jdbcType=INTEGER}
+    <if test="idList !=null and idList.size() &gt; 0">
+       and RECORD in
+       <foreach collection="idList" item="recordId" open="(" close=")" separator=",">
+         #{recordId,jdbcType=INTEGER}
+       </foreach>
+    </if>      
+  </delete>
+  
+  <select id="selectByUuid" parameterType="java.lang.String" resultMap="applicationDetail">
+   <include refid="selectApplicationSql" />
+   where a.UUID = #{uuid, jdbcType=VARCHAR}
+  </select>
+  <select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long">
+  select ID from t4_application where UUID = #{uuid, jdbcType=VARCHAR}
+  </select>
+</mapper>

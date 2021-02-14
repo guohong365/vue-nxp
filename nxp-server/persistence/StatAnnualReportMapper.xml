@@ -1,0 +1,110 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.StatAnnualReportMapper">
+  <resultMap id="statAnnualReportDetail" type="com.uc.app.zjjh.domain.StatAnnualReportForm" >
+    <result column="YEAR" property="year" jdbcType="VARCHAR" />
+    <result column="CITY_NAME" property="cityName" jdbcType="VARCHAR" />
+    <result column="AREA_NAME" property="areaName" jdbcType="VARCHAR" />
+    <result column="POPULATION" property="population" jdbcType="DECIMAL" />
+    <result column="EST_DRUGGERS" property="estDruggers" jdbcType="DECIMAL" />
+    <result column="EST_HEROIN_USERS" property="estHeroinUsers" jdbcType="DECIMAL" />
+    <result column="SENTENCED_DRUGGERS" property="sentencedDruggers" jdbcType="DECIMAL" />
+    <result column="HIV_NEW_CASES" property="hivNewCases" jdbcType="DECIMAL" />
+    <result column="DRUGGER_HIV_NEW_CASES" property="druggerHivNewCases" jdbcType="DECIMAL" />
+    <result column="HIV_SURVIVED" property="hivSurvived" jdbcType="DECIMAL" />
+    <result column="DRUGGER_HIV_SURVIVED" property="druggerHivSurvived" jdbcType="DECIMAL" />
+    <result column="VCT_NEW_CASES" property="vctNewCases" jdbcType="DECIMAL" />
+    <result column="DRUGGER_VCT_NEW_CASES" property="druggerVctNewCases" jdbcType="DECIMAL" />
+  </resultMap>
+  <sql id="columns">
+      t.YEAR, t.CITY, t.AREA, b.VALUE as CITY_NAME, c.VALUE as AREA_NAME, t.POPULATION, t.EST_DRUGGERS, t.EST_HEROIN_USERS,  
+      t.SENTENCED_DRUGGERS, t.HIV_NEW_CASES, t.DRUGGER_HIV_NEW_CASES, t.VCT_NEW_CASES, 
+      t.DRUGGER_VCT_NEW_CASES, t.HIV_SURVIVED, t.DRUGGER_HIV_SURVIVED  
+  </sql>
+  <sql id="whereSql">
+      <if test="queryForm != null">
+      <where>
+        <trim prefixOverrides="and">
+          <if test="queryForm.queryYearFrom !=null">
+            and a.YEAR &gt;= #{queryForm.queryYearFrom,jdbcType=INTEGER}
+          </if>
+          <if test="queryForm.queryYearTo !=null">
+            and a.YEAR &lt;= #{queryForm.queryYearTo,jdbcType=INTEGER}
+          </if>                    
+          <choose>
+            <when test="queryForm.queryArea !=null"> <!-- 如果区县不为空，只是用区县 -->
+              and a.AREA = #{queryForm.queryArea, jdbcType=INTEGER}
+            </when>
+            <otherwise>
+              <if test="queryForm.queryCity !=null">  <!-- 如果地市不为空，用地市 -->
+                and a.CITY = #{queryForm.queryCity, jdbcType=INTEGER}
+                <if test="queryForm.areaLimits != null and !queryForm.areaLimits.empty" >
+                  and a.AREA in (<foreach collection="queryForm.areaLimits" item="area">${area}</foreach>)
+                </if>
+              </if>
+            </otherwise>  
+          </choose>
+        </trim>
+      </where>
+      </if>  
+  </sql>
+  <select id="selectCountOptimized" parameterType="map" resultType="java.lang.Long">
+    select count(*) 
+    from (
+      select 
+        a.YEAR,
+        a.CITY,
+        a.AREA,
+        sum(a.EST_DRUGGERS) as EST_DRUGGERS
+      from t4_annual_report a
+      <include refid="whereSql" />
+      group by a.YEAR, a.CITY, a.AREA with rollup
+    ) t
+    where t.YEAR is not null
+    <choose>
+      <when test="queryForm.queryLevel == 1"> <!-- 到区县 --> 
+        and t.CITY is null
+      </when>
+      <when test="queryForm.queryLevel == 2"> <!-- 到地市 -->
+        and t.AREA is null
+      </when>        
+    </choose>
+  </select>
+  <select id="selectOptimized" parameterType="map" resultMap="statAnnualReportDetail">
+    select 
+      <include refid="columns" />
+    from (
+      select 
+        a.YEAR,
+        a.CITY,
+        a.AREA,
+        sum(a.POPULATION) as POPULATION,
+        sum(a.EST_DRUGGERS) as EST_DRUGGERS,
+        sum(a.EST_HEROIN_USERS) as EST_HEROIN_USERS,
+        sum(a.SENTENCED_DRUGGERS) as SENTENCED_DRUGGERS,
+        sum(a.HIV_NEW_CASES) as HIV_NEW_CASES,
+        sum(a.DRUGGER_HIV_NEW_CASES) as DRUGGER_HIV_NEW_CASES,
+        sum(a.VCT_NEW_CASES) as VCT_NEW_CASES,
+        sum(a.DRUGGER_VCT_NEW_CASES) as DRUGGER_VCT_NEW_CASES,
+        sum(a.HIV_SURVIVED) as HIV_SURVIVED,
+        sum(a.DRUGGER_HIV_SURVIVED) as DRUGGER_HIV_SURVIVED
+      from t4_annual_report a
+      <include refid="whereSql" />
+      group by a.YEAR, a.CITY, a.AREA with rollup
+    ) t
+    left join t4_c_area b on b.ID=t.CITY
+    left join t4_c_area c on c.ID=t.AREA  
+    where 
+      t.YEAR is not null
+      <choose>
+        <when test="queryForm.queryLevel == 1"> <!-- 到区县 --> 
+          and t.CITY is null
+        </when>
+        <when test="queryForm.queryLevel == 2"> <!-- 到地市 -->
+          and t.AREA is null
+        </when>        
+      </choose>
+    order by t.YEAR, t.CITY, t.AREA
+    limit ${offset}, ${count}
+  </select>
+</mapper>

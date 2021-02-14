@@ -1,0 +1,505 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.WorkRecordMapper">
+	<resultMap id="recordDetail" type="com.uc.app.zjjh.domain.WorkRecordForm">
+		<id column="ID" jdbcType="INTEGER" property="id" />
+		<result column="UUID" jdbcType="VARCHAR" property="uuid" />
+		<result column="EMPLOYEE" jdbcType="INTEGER" property="employee" />
+		<result column="SERVICE_DATE" jdbcType="DATE" property="serviceDate" />
+		<result column="OBJECT_ID" jdbcType="INTEGER" property="objectId" />
+		<result column="OBJECT_CODE" jdbcType="VARCHAR" property="objectCode" />
+		<result column="NEEDLE_PROVIDED" jdbcType="INTEGER" property="needleProvided" />
+		<result column="NEEDLE_RECYCLED" jdbcType="INTEGER" property="needleRecycled" />
+		<result column="CONDOMS_PROVIDED" jdbcType="INTEGER" property="condomsProvided" />
+		<result column="IEC_DOC_PROVIDED" jdbcType="INTEGER" property="iecDocProvided" />
+		<result column="INPUTER" jdbcType="INTEGER" property="inputer" />
+		<result column="INPUT_TIME" jdbcType="TIMESTAMP" property="inputTime" />
+		<result column="EDITABLE" jdbcType="BIT" property="editable" />
+		<result column="TRANS_ANTI_THERAPY" jdbcType="BIT" property="transAntiTherapy" />
+		<result column="TRANS_ANTI_THERAPY_DATE" jdbcType="DATE" property="transAntiTherapyDate"/>
+		<result column="TRANS_ANTI_THERAPY_NO" jdbcType="VARCHAR" property="transAntiTherapyNo"/>
+		<result column="TRANS_MMT" jdbcType="BIT" property="transMmt" />
+		<result column="TRANS_VCT" jdbcType="BIT" property="transVct" />
+		<result column="HIV_RESULT" jdbcType="VARCHAR" property="hivResult" />
+		<result column="HIV_RPT_DATE" jdbcType="DATE" property="hivRptDate" />
+		<result column="ALREADY_IN_MMT" jdbcType="BIT" property="alreadyInMmt" />
+		<result column="STRANGER" jdbcType="BIT" property="stranger" />
+		<result column="EMPLOYEE_NAME" jdbcType="VARCHAR" property="employeeName" />
+		<result column="INPUTER_NAME" jdbcType="VARCHAR" property="inputerName" />
+		<result column="CITY" jdbcType="INTEGER" property="city" />
+		<result column="CITY_NAME" jdbcType="VARCHAR" property="cityName" />
+		<result column="AREA" jdbcType="INTEGER" property="area" />
+		<result column="AREA_NAME" jdbcType="VARCHAR" property="areaName" />
+		<result column="SITE" jdbcType="INTEGER" property="site" />
+		<result column="SITE_NAME" jdbcType="VARCHAR" property="siteName" />
+		<result column="NATIONALITY" jdbcType="INTEGER" property="nationality" />
+		<result column="SEX" jdbcType="VARCHAR" property="sex" />
+		<result column="BIRTHDAY" jdbcType="DATE" property="birthday" />
+		<result column="POSITIVE" jdbcType="BIT" property="positive" />
+		<result column="AGE_GROUP" jdbcType="INTEGER" property="ageGroup" />
+	</resultMap>
+	<sql id="columns">
+		ID, UUID, EMPLOYEE, SERVICE_DATE, OBJECT_ID, OBJECT_CODE,
+		NEEDLE_PROVIDED,
+		NEEDLE_RECYCLED, CONDOMS_PROVIDED, IEC_DOC_PROVIDED,
+		INPUTER, INPUT_TIME,
+		EDITABLE, TRANS_ANTI_THERAPY, TRANS_ANTI_THERAPY_NO,
+		TRANS_ANTI_THERAPY_DATE, TRANS_MMT,
+		TRANS_VCT, HIV_RESULT, HIV_RPT_DATE,
+		ALREADY_IN_MMT, STRANGER,
+		EMPLOYEE_NAME, INPUTER_NAME, CITY,
+		CITY_NAME,
+		AREA, AREA_NAME, SITE,
+		NATIONALITY, SITE_NAME, SEX, BIRTHDAY,
+		POSITIVE,AGE_GROUP
+	</sql>
+	<sql id="setCurrentDate">
+		set @nowDate=CURRENT_DATE();
+	</sql>
+	<sql id="objectsOnSql">
+		<if test="queryForm!=null">
+			<if test="queryForm.queryObjectCode !=null">
+				and b.CODE like '%${queryForm.queryObjectCode}%'
+			</if>
+			<choose>
+				<when test="queryForm.querySite!=null">
+					and b.SITE = #{queryForm.querySite,jdbcType=INTEGER}
+				</when>
+				<otherwise>
+					<if test="!queryForm.siteLimits.empty">
+						and b.SITE in (<foreach collection="queryForm.siteLimits" item="site" separator=",">${site}</foreach>)
+					</if>
+				</otherwise>
+			</choose>
+			<if test="queryForm.queryNationality!=null">
+				and b.NATIONALITY =	#{queryForm.queryNationality,jdbcType=VARCHAR}
+			</if>
+		</if>
+	</sql>
+	<sql id="orgOnSql">
+	  <if test="queryForm.querySite == null">
+	    <choose>
+	      <when test="queryForm.queryArea !=null">
+	        and e.AREA = #{queryForm.queryArea,jdbcType=INTEGER}
+	      </when>
+	      <when test="queryForm.queryCity !=null">
+	        and e.CITY = #{queryForm.queryCity,jdbcType=INTEGER}
+	      </when>	      
+	    </choose>
+	    <if test="queryForm.siteLimits!=null and !queryForm.siteLimits.empty">
+	      and e.ID in (<foreach collection="queryForm.siteLimits" item="site" separator=",">#{site,jdbcType=INTEGER}</foreach>)
+	    </if>
+	  </if>
+	</sql>
+	<sql id="employeeOnSql">
+		<if test="queryForm!=null and queryForm.queryEmployeeName!=null">
+			and f.NAME like '%${queryForm.queryEmployeeName}%'
+		</if>
+	</sql>
+	<sql id="whereSql">
+	  <where>
+	  <trim prefixOverrides="and">
+	   <if test="queryForm.querySite != null or queryForm.queryArea != null or queryForm.queryCity != null or (queryForm.siteLimits!=null and !queryForm.siteLimits.empty)">
+	     and e.ID is not null
+	   </if>
+	   <if test="queryForm.queryObjectCode != null or queryForm.querySite !=null or queryForm.queryNationality != null">   
+	     and b.ID is not null
+	   </if>  
+		<if test="queryForm.queryEmployeeName != null">
+			and f.ID is not null
+		</if>
+		<if test="queryForm.queryServiceDateFrom!=null">
+			and a.SERVICE_DATE &gt;=	#{queryForm.queryServiceDateFrom,jdbcType=DATE}
+		</if>
+		<if test="queryForm.queryServiceDateTo!=null">
+			and a.SERVICE_DATE &lt;=	#{queryForm.queryServiceDateTo,jdbcType=DATE}
+		</if>
+		<if test="queryForm.queryFillDateFrom!=null">
+			and a.INPUT_TIME &gt;=	#{queryForm.queryFillDateFrom,jdbcType=DATE}
+		</if>
+		<if test="queryForm.queryFillDateTo!=null">
+			and a.INPUT_TIME &lt;=	#{queryForm.queryFillDateTo,jdbcType=DATE}
+		</if>
+		<if test="queryForm.queryInputer != null">
+			and a.INPUT = #{queryForm.queryInpter, jdbcType=INTEGER}
+		</if>
+		<choose>
+			<when test="queryForm.queryPositive and queryForm.queryExaminePositive">
+				and (b.POSITIVE = true or (a.TRANS_VCT =true and (a.HIV_RESULT = '确诊阳性' or a.HIV_RESULT = '初筛阳性')))
+			</when>
+			<when test="queryForm.queryPositive">
+				and b.POSITIVE = true
+			</when>
+			<when test="queryForm.queryExaminePositive">
+				and a.TRANS_VCT = true and (a.HIV_RESULT = '确诊阳性'	or a.HIV_RESULT =	'初筛阳性')
+			</when>
+		</choose>
+		<if test="queryForm.queryAgeGroup !=null">
+			having AGE_GROUP = #{queryForm.queryAgeGroup,jdbcType=INTEGER}
+		</if>
+		</trim>
+		</where>
+	</sql>
+	<sql id="orderBySql">
+		<if	test="queryForm!=null and queryForm.queryOrderByClause!=null and !queryForm.queryOrderByClause.empty">
+			order by ${queryForm.queryOrderByClause}
+		</if>
+	</sql>
+
+	<select id="selectOptimized" parameterType="map" resultMap="recordDetail">
+		<include refid="setCurrentDate" />
+		SELECT
+		a.ID AS ID,
+		a.UUID AS UUID,
+		a.EMPLOYEE AS EMPLOYEE,
+		a.SERVICE_DATE
+		AS SERVICE_DATE,
+		a.OBJECT_ID AS OBJECT_ID,
+		b.CODE AS OBJECT_CODE,
+		a.NEEDLE_PROVIDED AS NEEDLE_PROVIDED,
+		a.NEEDLE_RECYCLED AS
+		NEEDLE_RECYCLED,
+		a.CONDOMS_PROVIDED AS CONDOMS_PROVIDED,
+		a.IEC_DOC_PROVIDED AS IEC_DOC_PROVIDED,
+		a.INPUTER AS INPUTER,
+		a.INPUT_TIME AS INPUT_TIME,
+		a.EDITABLE AS EDITABLE,
+		a.TRANS_ANTI_THERAPY AS TRANS_ANTI_THERAPY,
+		a.TRANS_ANTI_THERAPY_NO as TRANS_ANTI_THERAPY_NO,
+		a.TRANS_ANTI_THERAPY_DATE as TRANS_ANTI_THERAPY_DATE,
+		a.TRANS_MMT AS TRANS_MMT,
+		a.TRANS_VCT AS TRANS_VCT,
+		a.HIV_RESULT AS HIV_RESULT,
+		a.HIV_RPT_DATE AS	HIV_RPT_DATE,
+		a.ALREADY_IN_MMT AS ALREADY_IN_MMT,
+		a.STRANGER AS
+		STRANGER,
+		f.NAME AS EMPLOYEE_NAME,
+		g.NAME AS INPUTER_NAME,
+		e.CITY AS
+		CITY,
+		c.VALUE AS CITY_NAME,
+		e.AREA AS AREA,
+		d.VALUE AS AREA_NAME,
+		b.SITE
+		AS SITE,
+		b.NATIONALITY AS NATIONALITY,
+		e.NAME AS SITE_NAME,
+		b.SEX AS SEX,
+		b.BIRTHDAY AS BIRTHDAY,
+		b.POSITIVE AS POSITIVE,
+		(CASE
+		WHEN ((b.BIRTHDAY +
+		INTERVAL 18 YEAR) &gt;= @nowDate) THEN 1
+		WHEN ((b.BIRTHDAY + INTERVAL
+		25 YEAR) &gt;= @nowDate) THEN 2
+		WHEN ((b.BIRTHDAY + INTERVAL 35 YEAR)
+		&gt;= @nowDate) THEN 3
+		WHEN ((b.BIRTHDAY + INTERVAL 45 YEAR) &gt;=
+		@nowDate) THEN 4
+		ELSE 5
+		END) AS AGE_GROUP
+		FROM t4_work_record a
+		left JOIN	t4_objects b ON b.ID = a.OBJECT_ID	<include refid="objectsOnSql" />
+		left JOIN t4_org e ON e.ID = b.SITE <include refid="orgOnSql" />
+		left JOIN t4_c_area c ON c.ID =	e.CITY
+		left JOIN t4_c_area d ON d.ID = e.AREA
+		left JOIN t4_employee f ON f.ID = a.EMPLOYEE	<include refid="employeeOnSql" />
+		left JOIN t4_user g ON g.ID = a.INPUTER
+		<include refid="whereSql" />
+		<include refid="orderBySql" />
+		limit ${offset}, ${count}
+	</select>
+	<select id="selectCountOptimized" parameterType="map"
+		resultType="java.lang.Long">
+		<include refid="setCurrentDate" />
+		select count(*) from (
+		SELECT
+		a.SERVICE_DATE,
+		a.INPUT_TIME,
+		(CASE
+		WHEN
+		((b.BIRTHDAY + INTERVAL 18 YEAR) &gt;= @nowDate) THEN 1
+		WHEN
+		((b.BIRTHDAY + INTERVAL 25 YEAR) &gt;= @nowDate) THEN 2
+		WHEN
+		((b.BIRTHDAY + INTERVAL 35 YEAR) &gt;= @nowDate) THEN 3
+		WHEN
+		((b.BIRTHDAY + INTERVAL 45 YEAR) &gt;= @nowDate) THEN 4
+		ELSE 5
+		END) AS
+		AGE_GROUP
+		FROM t4_work_record a
+		left JOIN t4_objects b ON b.ID =a.OBJECT_ID	<include refid="objectsOnSql" />
+		left join t4_org e on e.ID = b.SITE <include refid="orgOnSql" />
+		left JOIN t4_employee f ON f.ID = a.EMPLOYEE <include refid="employeeOnSql" />
+		<include refid="whereSql" />
+		) t
+	</select>
+
+	<select id="selectById" parameterType="java.lang.Long"
+		resultMap="recordDetail">
+		SELECT
+		a.ID AS ID,
+		a.UUID AS UUID,
+		a.EMPLOYEE AS EMPLOYEE,
+		a.SERVICE_DATE AS SERVICE_DATE,
+		a.OBJECT_ID AS OBJECT_ID,
+		b.CODE AS
+		OBJECT_CODE,
+		a.NEEDLE_PROVIDED AS NEEDLE_PROVIDED,
+		a.NEEDLE_RECYCLED AS
+		NEEDLE_RECYCLED,
+		a.CONDOMS_PROVIDED AS CONDOMS_PROVIDED,
+		a.IEC_DOC_PROVIDED AS IEC_DOC_PROVIDED,
+		a.INPUTER AS INPUTER,
+		a.INPUT_TIME AS INPUT_TIME,
+		a.EDITABLE AS EDITABLE,
+		a.TRANS_ANTI_THERAPY AS TRANS_ANTI_THERAPY,
+		a.TRANS_ANTI_THERAPY_NO as TRANS_ANTI_THERAPY_NO,
+    a.TRANS_ANTI_THERAPY_DATE as TRANS_ANTI_THERAPY_DATE,
+		a.TRANS_MMT AS TRANS_MMT,
+		a.TRANS_VCT AS TRANS_VCT,
+		a.HIV_RESULT AS HIV_RESULT,
+		a.HIV_RPT_DATE AS
+		HIV_RPT_DATE,
+		a.ALREADY_IN_MMT AS ALREADY_IN_MMT,
+		a.STRANGER AS
+		STRANGER,
+		f.NAME AS EMPLOYEE_NAME,
+		g.NAME AS INPUTER_NAME,
+		e.CITY AS
+		CITY,
+		c.VALUE AS CITY_NAME,
+		e.AREA AS AREA,
+		d.VALUE AS AREA_NAME,
+		b.SITE
+		AS SITE,
+		b.NATIONALITY AS NATIONALITY,
+		e.NAME AS SITE_NAME,
+		b.SEX AS SEX,
+		b.BIRTHDAY AS BIRTHDAY,
+		b.POSITIVE AS POSITIVE,
+		(CASE
+		WHEN ((b.BIRTHDAY +
+		INTERVAL 18 YEAR) &gt;= @nowDate) THEN 1
+		WHEN ((b.BIRTHDAY + INTERVAL
+		25 YEAR) &gt;= @nowDate) THEN 2
+		WHEN ((b.BIRTHDAY + INTERVAL 35 YEAR)
+		&gt;= @nowDate) THEN 3
+		WHEN ((b.BIRTHDAY + INTERVAL 45 YEAR) &gt;=
+		@nowDate) THEN 4
+		ELSE 5
+		END) AS AGE_GROUP
+		FROM t4_work_record a
+		left JOIN
+		t4_objects b ON b.ID = a.OBJECT_ID
+		left JOIN t4_org e ON e.ID = b.SITE
+		left JOIN t4_c_area c ON c.ID = e.CITY
+		left JOIN t4_c_area d ON d.ID =
+		e.AREA
+		left JOIN t4_employee f ON f.ID = a.EMPLOYEE
+		left JOIN t4_user g
+		ON g.ID = a.INPUTER
+		where a.ID = #{id, jdbcType=INTEGER}
+	</select>
+
+	<insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.WorkRecordForm">
+		insert into
+		t4_work_record
+		(UUID, EMPLOYEE, SERVICE_DATE,
+		OBJECT_ID,
+		NEEDLE_PROVIDED, NEEDLE_RECYCLED,
+		CONDOMS_PROVIDED, IEC_DOC_PROVIDED,
+		INPUTER,
+		INPUT_TIME, EDITABLE,
+		TRANS_ANTI_THERAPY,
+		TRANS_ANTI_THERAPY_NO,
+		TRANS_ANTI_THERAPY_DATE,
+		TRANS_MMT, TRANS_VCT,
+		HIV_RESULT,
+		HIV_RPT_DATE,
+		STRANGER, ALREADY_IN_MMT
+		)
+		values
+		(#{uuid,jdbcType=VARCHAR},
+		#{employee,jdbcType=INTEGER},
+		#{serviceDate,jdbcType=DATE},
+		#{objectId,jdbcType=INTEGER},
+		#{needleProvided,jdbcType=INTEGER},
+		#{needleRecycled,jdbcType=INTEGER},
+		#{condomsProvided,jdbcType=INTEGER},
+		#{iecDocProvided,jdbcType=INTEGER}, #{inputer,jdbcType=INTEGER},
+		#{inputTime,jdbcType=TIMESTAMP}, #{editable,jdbcType=BIT},
+		#{transAntiTherapy,jdbcType=BIT},
+		#{transAntiTherapyNo, jdbcType=VARCHAR}, 
+		#{transAntiTherapyDate, jdbcType=DATE},
+		#{transMmt,jdbcType=BIT},
+		#{transVct,jdbcType=BIT}, #{hivResult,jdbcType=VARCHAR},
+		#{hivRptDate,jdbcType=DATE}, #{stranger,jdbcType=BIT},
+		#{alreadyInMmt,jdbcType=BIT}
+		)
+	</insert>
+
+	<update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.WorkRecordForm">
+		update t4_work_record
+		<set>
+			<if test="employee != null and employee != 0">
+				EMPOYEE = #{employee,jdbcType=INTEGER},
+			</if>
+			<if test="serviceDate != null">
+				SERVICE_DATE = #{serviceDate,jdbcType=DATE},
+			</if>
+			<if test="objectId != null and objectId != 0">
+				OBJECT_ID = #{objectId,jdbcType=INTEGER},
+			</if>
+			<if test="needleProvided != null">
+				NEEDLE_PROVIDED = #{needleProvided,jdbcType=INTEGER},
+			</if>
+			<if test="needleRecycled != null">
+				NEEDLE_RECYCLED = #{needleRecycled,jdbcType=INTEGER},
+			</if>
+			<if test="condomsProvided != null">
+				CONDOMS_PROVIDED = #{condomsProvided,jdbcType=INTEGER},
+			</if>
+			<if test="iecDocProvided != null">
+				IEC_DOC_PROVIDED = #{iecDocProvided,jdbcType=INTEGER},
+			</if>
+			<if test="editable != null">
+				EDITABLE = #{editable,jdbcType=BIT},
+			</if>
+			<if test="transAntiTherapy != null">
+				TRANS_ANTI_THERAPY = #{transAntiTherapy,jdbcType=BIT},
+			</if>
+			<if test="transAntiTherapyNo !=null">
+			  TRANS_ANTI_THERAPY_NO = #{transAntiTherapyNo,jdbcType=VARCHAR},
+			</if>
+			<if test="transAntiTherapyDate != null">
+			  TRANS_ANTI_THERAPY_DATE = #{transAntiTherapyDate, jdbcType=DATE},
+			</if>
+			<if test="transMmt != null">
+				TRANS_MMT = #{transMmt,jdbcType=BIT},
+			</if>
+			<if test="transVct != null">
+				TRANS_VCT = #{transVct,jdbcType=BIT},
+			</if>
+			<if test="hivResult != null">
+				HIV_RESULT = #{hivResult,jdbcType=VARCHAR},
+			</if>
+			<if test="hivRptDate != null">
+				HIV_RPT_DATE = #{hivRptDate,jdbcType=DATE},
+			</if>
+			<if test="stranger != null">
+				STRANGER = #{stranger,jdbcType=BIT},
+			</if>
+			<if test="alreadyInMmt != null">
+				ALREADY_IN_MMT = #{alreadyInMmt,jdbcType=BIT},
+			</if>
+		</set>
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+
+	<update id="updateDetail" parameterType="com.uc.app.zjjh.domain.WorkRecordForm">
+		update t4_work_record
+		set EMPLOYEE = #{employee,jdbcType=INTEGER},
+		SERVICE_DATE =	#{serviceDate,jdbcType=DATE},
+		OBJECT_ID = #{objectId,jdbcType=INTEGER},
+		NEEDLE_PROVIDED = #{needleProvided,jdbcType=INTEGER},
+		NEEDLE_RECYCLED =	#{needleRecycled,jdbcType=INTEGER},
+		CONDOMS_PROVIDED = #{condomsProvided,jdbcType=INTEGER},
+		IEC_DOC_PROVIDED =	#{iecDocProvided,jdbcType=INTEGER},
+		EDITABLE =	#{editable,jdbcType=BIT},
+		TRANS_ANTI_THERAPY =#{transAntiTherapy,jdbcType=BIT},
+		TRANS_ANTI_THERAPY_NO = #{transAntiTherapy, jdbcType=VARCHAR},
+		TRANS_ANTI_THERAPY_DATE = #{transAntiTherapy, jdbcType=DATE},
+		TRANS_MMT = #{transMmt,jdbcType=BIT},
+		TRANS_VCT = #{transVct,jdbcType=BIT},
+		HIV_RESULT =#{hivResult,jdbcType=VARCHAR},
+		HIV_RPT_DATE =#{hivRptDate,jdbcType=DATE},
+		STRANGER = #{stranger,jdbcType=BIT},
+		ALREADY_IN_MMT = #{alreadyInMmt,jdbcType=BIT}
+		where ID = #{id,jdbcType=INTEGER}
+	</update>
+
+	<delete id="deleteDetail" parameterType="com.uc.app.zjjh.domain.WorkRecordForm">
+		delete from
+		t4_work_record where ID = #{id,jdbcType=INTEGER}
+	</delete>
+
+	<select id="selectByUuid" parameterType="java.lang.String"
+		resultMap="recordDetail">
+		SELECT
+		a.ID AS ID,
+		a.UUID AS UUID,
+		a.EMPLOYEE AS EMPLOYEE,
+		a.SERVICE_DATE AS SERVICE_DATE,
+		a.OBJECT_ID AS OBJECT_ID,
+		b.CODE AS
+		OBJECT_CODE,
+		a.NEEDLE_PROVIDED AS NEEDLE_PROVIDED,
+		a.NEEDLE_RECYCLED AS
+		NEEDLE_RECYCLED,
+		a.CONDOMS_PROVIDED AS CONDOMS_PROVIDED,
+		a.IEC_DOC_PROVIDED AS IEC_DOC_PROVIDED,
+		a.INPUTER AS INPUTER,
+		a.INPUT_TIME AS INPUT_TIME,
+		a.EDITABLE AS EDITABLE,
+		a.TRANS_ANTI_THERAPY AS TRANS_ANTI_THERAPY,
+    a.TRANS_ANTI_THERAPY_NO as TRANS_ANTI_THERAPY_NO,
+    a.TRANS_ANTI_THERAPY_DATE as TRANS_ANTI_THERAPY_DATE,		
+		a.TRANS_MMT AS TRANS_MMT,
+		a.TRANS_VCT AS TRANS_VCT,
+		a.HIV_RESULT AS HIV_RESULT,
+		a.HIV_RPT_DATE AS
+		HIV_RPT_DATE,
+		a.ALREADY_IN_MMT AS ALREADY_IN_MMT,
+		a.STRANGER AS
+		STRANGER,
+		f.NAME AS EMPLOYEE_NAME,
+		g.NAME AS INPUTER_NAME,
+		e.CITY AS
+		CITY,
+		c.VALUE AS CITY_NAME,
+		e.AREA AS AREA,
+		d.VALUE AS AREA_NAME,
+		b.SITE
+		AS SITE,
+		b.NATIONALITY AS NATIONALITY,
+		e.NAME AS SITE_NAME,
+		b.SEX AS SEX,
+		b.BIRTHDAY AS BIRTHDAY,
+		b.POSITIVE AS POSITIVE,
+		(CASE
+		WHEN ((b.BIRTHDAY +
+		INTERVAL 18 YEAR) &gt;= @nowDate) THEN 1
+		WHEN ((b.BIRTHDAY + INTERVAL
+		25 YEAR) &gt;= @nowDate) THEN 2
+		WHEN ((b.BIRTHDAY + INTERVAL 35 YEAR)
+		&gt;= @nowDate) THEN 3
+		WHEN ((b.BIRTHDAY + INTERVAL 45 YEAR) &gt;=
+		@nowDate) THEN 4
+		ELSE 5
+		END) AS AGE_GROUP
+		FROM t4_work_record a
+		left JOIN
+		t4_objects b ON b.ID = a.OBJECT_ID
+		left JOIN t4_org e ON e.ID = b.SITE
+		left JOIN t4_c_area c ON c.ID = e.CITY
+		left JOIN t4_c_area d ON d.ID =
+		e.AREA
+		left JOIN t4_employee f ON f.ID = a.EMPLOYEE
+		left JOIN t4_user g
+		ON g.ID = a.INPUTER
+		where a.UUID = #{uuid,
+		jdbcType=VARCHAR}
+	</select>
+	<select id="selectIdByUuid" parameterType="java.lang.String"
+		resultType="java.lang.Long">
+		select ID from t4_work_record where UUID = #{uuid,
+		jdbcType=VARCHAR}
+	</select>
+  <delete id="deleteObjectIfNoReference" parameterType="com.uc.app.zjjh.domain.WorkRecordForm">
+    select OBJECT_ID from t4_work_record where ID=#{id} into @obj_code;
+    delete from t4_objects where ID=@obj_code and (select count(*) from t4_work_record where OBJECT_ID=@obj_code) &lt;=1;
+  </delete>
+</mapper>

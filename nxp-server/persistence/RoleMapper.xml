@@ -1,0 +1,145 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.RoleMapper">
+  <resultMap id="roleDetail" type="com.uc.app.zjjh.domain.RoleForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="NAME" jdbcType="VARCHAR" property="name" />
+    <result column="DESCRIPTION" jdbcType="VARCHAR" property="description" />
+    <result column="VALID" jdbcType="BIT" property="valid" />
+    <result column="PREDEFINED" jdbcType="BIT" property="internal" />
+  </resultMap>
+    <resultMap id="functionAvailable" type="com.uc.app.zjjh.domain.FunctionAvailable">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="NAME" jdbcType="VARCHAR" property="name" />
+    <result column="URI" jdbcType="VARCHAR" property="uri" />
+    <result column="DESCRIPTION" jdbcType="VARCHAR" property="description" />
+    <result column="VALID" jdbcType="BIT" property="valid" />
+    <result column="URI_PATTERN" jdbcType="VARCHAR" property="uriPattern" />
+    <result column="AVAILABLE" jdbcType="BIT" property="available"/>
+  </resultMap>
+
+  <sql id="columns">
+    ID, UUID, NAME, DESCRIPTION, VALID, PREDEFINED
+  </sql>
+  
+  <select id="selectFunctions" parameterType="java.lang.Long" resultMap="functionAvailable">
+    <choose>
+    <when test="_parameter!=null">
+    select a.ID, a.NAME, a.URI,  a.DESCRIPTION,  a.VALID,  a.URI_PATTERN,  if(b.FUNC is null, false, true) as AVAILABLE
+    from t4_function a
+    left join t4_role_func b on a.ID=b.FUNC and b.ROLE=#{id,jdbcType=INTEGER}
+    </when>
+    <otherwise>
+      select ID, NAME,  URI,  DESCRIPTION,  VALID, URI_PATTERN,  false as AVAILABLE  
+      from t4_function
+      where VALID=true   
+    </otherwise>
+    </choose>
+  </select>
+  
+  <insert id="updateRoleFunctions" parameterType="com.uc.app.zjjh.domain.RoleForm">
+    delete from t4_role_func where ROLE=#{id,jdbcType=INTEGER};
+    <if test="_parameter!=null and functions!=null">
+      <foreach collection="functions" item="func">
+        <if test="func.available">
+          insert into t4_role_func (ROLE, FUNC) values (#{id,jdbcType=INTEGER}, #{func.id,jdbcType=INTEGER});
+        </if>  
+      </foreach>
+    </if>
+  </insert>
+  
+  <select id="selectById" parameterType="java.lang.Long" resultMap="roleDetail">
+    select 
+    <include refid="columns" />
+    from t4_role
+    where ID = #{id,jdbcType=INTEGER}
+  </select>
+  
+  <insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.RoleForm">    
+    insert into t4_role (UUID, NAME, DESCRIPTION,VALID, PREDEFINED)
+    values (#{uuid,jdbcType=VARCHAR}, #{name,jdbcType=VARCHAR}, #{description,jdbcType=VARCHAR}, 
+      #{valid,jdbcType=BIT}, #{internal,jdbcType=BIT});      
+    <if test="functionCount &gt; 0">
+      insert into t4_role_func (ROLE, FUNC) values  
+      <foreach collection="functions" item="func" separator=",">       
+        <if test="func.available">
+          ((select ID from t4_role where UUID=#{uuid,jdbcType=CHAR}), #{func.id,jdbcType=INTEGER})
+        </if>  
+    </foreach>
+    </if>
+  </insert>
+
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.RoleForm">
+    update t4_role
+    <set>
+      <if test="uuid != null">
+        UUID = #{uuid,jdbcType=VARCHAR},
+      </if>
+      <if test="name != null">
+        NAME = #{name,jdbcType=VARCHAR},
+      </if>
+      <if test="description != null">
+        DESCRIPTION = #{description,jdbcType=VARCHAR},
+      </if>
+      <if test="valid != null">
+        VALID = #{valid,jdbcType=BIT},
+      </if>
+      <if test="internal != null">
+        PREDEFINED = #{internal,jdbcType=BIT},
+      </if>
+    </set>
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.RoleForm">
+    update t4_role
+    set
+      UUID = #{uuid,jdbcType=VARCHAR}, 
+      NAME = #{name,jdbcType=VARCHAR},
+      DESCRIPTION = #{description,jdbcType=VARCHAR},
+      VALID = #{valid,jdbcType=BIT},
+      PREDEFINED = #{internal,jdbcType=BIT}
+    where ID = #{id,jdbcType=INTEGER}
+  </update>
+  <select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long">
+    select ID from t4_role where UUID = #{uuid,jdbcType=VARCHAR}
+  </select>
+  <select id="selectByUuid" parameterType="java.lang.String" resultMap="roleDetail">
+    select <include refid="columns" /> from t4_role where UUID=#{uuid, jdbcType=VARCHAR}
+  </select>
+  <select id="selectCountOptimized" parameterType="com.uc.app.zjjh.forms.RoleQueryForm" resultType="java.lang.Long">
+    select count(*) from t4_role
+    <if test="queryForm != null">
+    <where>
+      <trim prefixOverrides="and">
+        <if test="queryForm.queryName !=null">
+          and NAME like '%${queryForm.queryName}%'
+        </if>
+        <if test="!queryForm.queryAll">
+          and VALID = TRUE
+        </if>
+      </trim>
+    </where>
+    </if>    
+  </select>
+  <select id="selectOptimized" parameterType="com.uc.app.zjjh.forms.RoleQueryForm" resultMap="roleDetail">
+    select <include refid="columns" /> from t4_role
+    <if test="queryForm != null">
+      <where>
+        <trim prefixOverrides="and">
+          <if test="queryForm.queryName !=null">
+          and NAME like '%${queryForm.queryName}%'
+          </if>
+          <if test="!queryForm.queryAll">
+          and VALID = TRUE
+          </if>
+        </trim>
+      </where>
+      <if test="queryForm.queryOrderByClause!=null and !queryForm.queryOrderByClause.empty">
+      order by ${queryForm.queryOrderByClause}
+      </if> 
+    </if>    
+    limit ${offset}, ${count}
+  </select>
+</mapper>

@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.NoticeMapper">
+  <resultMap id="noticeDetail" type="com.uc.app.zjjh.domain.NoticeForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="TITLE" jdbcType="VARCHAR" property="title" />
+    <result column="AUTHOR" jdbcType="INTEGER" property="author" />
+    <result column="CREATE_TIME" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="MODIFY_TIME" jdbcType="TIMESTAMP" property="modifyTime" />
+    <result column="PUBLISHER" jdbcType="INTEGER" property="publisher" />
+    <result column="PUBLISH_TIME" jdbcType="TIMESTAMP" property="publishTime" />
+    <result column="EXPIRE_TIME" jdbcType="TIMESTAMP" property="expireTime" />
+    <result column="MAIN_HTML" jdbcType="VARCHAR" property="mainHtml" />
+    <result column="SUB_TITILE" jdbcType="VARCHAR" property="subTitile" />
+    <result column="IMPORTANT_LEVEL" jdbcType="INTEGER" property="importantLevel" />
+    <result column="AUTHOR_NAME" jdbcType="VARCHAR" property="authorName" />
+    <result column="PUBLISHER_NAME" jdbcType="VARCHAR" property="publisherName" />
+    <result column="EXPIRED" jdbcType="BIT" property="expired" />
+    <result column="LEVEL_NAME" jdbcType="VARCHAR" property="levelName" />
+  </resultMap>
+  <sql id="whereSql">
+  <if test="queryForm != null">
+    <where>
+      <trim prefixOverrides="and">      
+        <if test="queryForm.queryExpireTimeFrom !=null">
+          and a.EXPIRE_TIME &gt;= #{queryForm.queryExpireTimeFrom, jdbcType=TIMESTAMP}
+        </if>
+        <if test="queryForm.queryExpireTimeTo != null">
+          and a.EXPIRE_TIME &lt;= #{queryForm.queryExpireTimeTo, jdbcType=TIMESTAMP}
+        </if>
+        <if test="queryForm.queryLevel != null">
+          and a.IMPORTANT_LEVEL = #{queryForm.queryLevel, jdbcType=INTEGER}
+        </if>
+        <if test="queryForm.queryPublishTimeFrom != null">
+          and a.PUBLISH_TIME &gt;= #{queryForm.queryPublishTimeFrom, jdbcType=TIMESTAMP}
+        </if>
+        <if test="queryForm.queryPublishTimeTo != null">
+          and a.PUBLISH_TIME &lt;= #{queryForm.queryPublishTimeTo,jdbcType=TIMESTAMP}
+        </if>
+        <if test="queryForm.queryTitle != null">
+          and a.TITLE like '%${queryForm.queryTitle}%'
+        </if>
+      </trim>
+    </where>
+    <if test="!queryForm.queryAll">
+      having EXPIRED =false
+    </if>
+  </if>      
+  </sql>
+  <sql id="orderBySql">
+    <if test="queryForm != null">
+      <if test="queryForm.queryOrderByClause!=null and !queryForm.queryOrderByClause.empty">
+        order by ${queryForm.queryOrderByClause}
+      </if>
+    </if>     
+  </sql>
+  <sql id="selectSql">
+  SELECT 
+        a.ID AS ID,
+        a.UUID AS UUID,
+        a.TITLE AS TITLE,
+        a.AUTHOR AS AUTHOR,
+        a.CREATE_TIME AS CREATE_TIME,
+        a.MODIFY_TIME AS MODIFY_TIME,
+        a.PUBLISHER AS PUBLISHER,
+        a.PUBLISH_TIME AS PUBLISH_TIME,
+        a.EXPIRE_TIME AS EXPIRE_TIME,
+        a.MAIN_HTML AS MAIN_HTML,
+        a.SUB_TITILE AS SUB_TITILE,
+        a.IMPORTANT_LEVEL AS IMPORTANT_LEVEL,
+        b.NAME AS AUTHOR_NAME,
+        c.NAME AS PUBLISHER_NAME,
+        ((a.EXPIRE_TIME IS NOT NULL) AND (a.EXPIRE_TIME &lt; NOW())) AS EXPIRED,
+        d.VALUE AS LEVEL_NAME
+    FROM
+        t4_article a
+        LEFT JOIN t4_user b ON b.ID = a.AUTHOR
+        LEFT JOIN t4_user c ON c.ID = a.PUBLISHER
+        LEFT JOIN t4_c_article_level d ON d.CODE = a.IMPORTANT_LEVEL
+  </sql>
+  
+  <select id="selectById" parameterType="java.lang.Long" resultMap="noticeDetail">
+    <include refid="selectSql" />
+    where a.ID=#{id, jdbcType=INTEGER}
+  </select>
+    
+  <select id="selectOptimized" parameterType="map" resultMap="noticeDetail">
+    <include refid="selectSql" />
+    <include refid="whereSql" />
+    <include refid="orderBySql" />
+    limit ${offset}, ${count}
+  </select>
+  
+  <select id="selectCountOptimized" parameterType="map" resultType="java.lang.Long">
+    select count(*) from (
+    <include refid="selectSql" />
+    <include refid="whereSql" />
+    ) t
+  </select>
+
+  <insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.NoticeForm">
+    insert into t4_article (UUID, TITLE, AUTHOR, 
+      PUBLISHER, PUBLISH_TIME, EXPIRE_TIME, MAIN_HTML, 
+      SUB_TITILE, IMPORTANT_LEVEL 
+      )
+    values 
+    (UUID(), #{title,jdbcType=VARCHAR}, #{author,jdbcType=INTEGER}, 
+     #{publisher,jdbcType=INTEGER}, #{publishTime,jdbcType=TIMESTAMP}, 
+     #{expireTime,jdbcType=TIMESTAMP}, #{mainHtml,jdbcType=VARCHAR}, 
+     #{subTitile,jdbcType=VARCHAR}, #{importantLevel,jdbcType=INTEGER}
+      )
+  </insert>
+  
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.NoticeForm">
+    update t4_article
+    <set>
+      <if test="title != null">
+        TITLE = #{title,jdbcType=VARCHAR},
+      </if>
+      <if test="author != null and author != 0">
+        AUTHOR = #{author,jdbcType=INTEGER},
+      </if>
+      <if test="modifyTime != null">
+        MODIFY_TIME = #{modifyTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="publisher != null and publisher != 0">
+        PUBLISHER = #{publisher,jdbcType=INTEGER},
+      </if>
+      <if test="publishTime != null">
+        PUBLISH_TIME = #{publishTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="expireTime != null">
+        EXPIRE_TIME = #{expireTime,jdbcType=TIMESTAMP},
+      </if>
+      <if test="mainHtml != null">
+        MAIN_HTML = #{mainHtml,jdbcType=VARCHAR},
+      </if>
+      <if test="subTitile != null">
+        SUB_TITILE = #{subTitile,jdbcType=VARCHAR},
+      </if>
+      <if test="importantLevel != null">
+        IMPORTANT_LEVEL = #{importantLevel,jdbcType=INTEGER},
+      </if>
+    </set>
+    where ID=#{id,jdbcType=INTEGER}
+  </update>
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.NoticeForm">
+    update t4_article
+    set 
+      TITLE = #{title,jdbcType=VARCHAR},
+      AUTHOR = #{author,jdbcType=INTEGER},
+      MODIFY_TIME = #{modifyTime,jdbcType=TIMESTAMP},
+      PUBLISHER = #{publisher,jdbcType=INTEGER},
+      PUBLISH_TIME = #{publishTime,jdbcType=TIMESTAMP},
+      EXPIRE_TIME = #{expireTime,jdbcType=TIMESTAMP},
+      MAIN_HTML = #{mainHtml,jdbcType=VARCHAR},
+      SUB_TITILE = #{subTitile,jdbcType=VARCHAR},
+      IMPORTANT_LEVEL = #{importantLevel,jdbcType=INTEGER}
+    where id=#{id,jdbcType=INTEGER}
+  </update>
+  
+  <select id="selectByUuid" parameterType="java.lang.String" resultMap="noticeDetail">
+   <include refid="selectSql" />
+    where a.UUID = #{uuid,jdbcType=VARCHAR}
+  </select>
+  <select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long" >
+   select ID from t4_article where UUID = #{uuid,jdbcType=VARCHAR}
+  </select>
+</mapper>

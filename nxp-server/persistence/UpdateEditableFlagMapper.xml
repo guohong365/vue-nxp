@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.UpdateEditableFlagMapper">
+<update id="updateFlagsForWorkRecord" parameterType="map">
+  update t4_work_record a
+  set a.EDITABLE=false
+  where 
+  a.EDITABLE= true
+  and a.SERVICE_DATE &lt; #{closeDate, jdbcType=DATE}
+  and a.ID not in (    
+    select s1.RECORD from t4_application_detail s1
+    join t4_application s2 on s2.ID=s1.APPLY   
+    where 
+    s2.TYPE='工作记录' 
+    and s2.STATE='批准' 
+    and ADDTIME(s2.APPROVE_TIME, '${allowTime}') &gt; CURRENT_TIME())
+</update>
+<update id="updateFlagsForAnnualReport" parameterType="map">
+  update t4_annual_report a
+  set a.EDITABLE=false
+  where 
+    a.YEAR &lt; #{lastYear,jdbcType=INTEGER} 
+    and a.ID not in (
+      select s1.RECORD from t4_application_detail s1
+      join t4_application s2 on s2.ID = s1.APPLY
+      where 
+      a.EDITABLE = true 
+      and s2.TYPE = '年报'      
+      and s2.STATE='批准' 
+      and ADDTIME(s2.APPROVE_TIME, '${allowTime}') &gt; CURRENT_TIME()) 
+</update>
+<update id="finishApply" parameterType="map">
+  update t4_application t
+  set t.STATE = '完成'
+  where 
+  t.STATE = '批准' 
+  and ADDTIME(t.APPROVE_TIME, '${allowTime}') &lt;= CURRENT_TIME()
+</update>
+</mapper>

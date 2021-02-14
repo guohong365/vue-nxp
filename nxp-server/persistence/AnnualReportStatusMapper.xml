@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.AnnualReportStatusMapper">
+	<resultMap type="com.uc.app.zjjh.domain.AnnualReportStatusForm"	id="reportStatusDetail">
+		<result column="YEAR" jdbcType="INTEGER" property="year" />
+		<result column="CITY_NAME" jdbcType="VARCHAR" property="cityName" />
+		<result column="AREA_NAME" jdbcType="VARCHAR" property="areaName" />
+		<result column="INPUT_TIME" jdbcType="TIMESTAMP" property="inputTime" />
+		<result column="INPUTER_NAME" jdbcType="VARCHAR" property="inputerName" />
+		<result column="REPORT_ORG_NAME" jdbcType="VARCHAR" property="reportOrgName" />
+	</resultMap>
+	<sql id="whereSql">
+		where
+		a.TYPE = 'COUNTY' and a.VALID
+		<if test="queryForm != null">
+			<if test="queryForm.queryYearFrom != null">
+				and b.YEAR &gt;=
+				#{queryForm.queryYearFrom,jdbcType=INTEGER}
+			</if>
+			<if test="queryForm.queryYearTo != null">
+				and b.YEAR &lt;=#{queryForm.queryYearTo,jdbcType=INTEGER}
+			</if>
+			<if test="!queryForm.queryAll">
+			  and c.ID is NULL
+			</if>
+			<choose>
+				<when test="queryForm.queryArea != null">
+					and a.ID = #{queryForm.queryArea, jdbcType=INTEGER}
+				</when>
+				<otherwise>
+					<if test="queryForm.queryCity != null">
+						and a.PARENT = ${queryForm.queryCity}
+					</if>
+					<if test="!queryForm.areaLimits.empty">
+						and a.ID in (
+						<foreach collection="queryForm.areaLimits" item="area"
+							separator=",">${area}</foreach>
+						)
+					</if>
+				</otherwise>
+			</choose>
+		</if>
+	</sql>
+	<select id="selectCountOptimized" parameterType="map"	resultType="java.lang.Long">
+		select count(*)
+		from t4_c_area a
+		left join (select distinct
+		YEAR from t4_annual_report) b on true
+		left join t4_annual_report c on
+		c.AREA = a.ID and c.YEAR = b.YEAR
+		left join t4_user d on d.ID =	c.INPUTER
+		<include refid="whereSql" />
+	</select>
+
+	<select id="selectOptimized" parameterType="map" resultMap="reportStatusDetail">
+		select
+		a.VALUE as AREA_NAME,
+		f.VALUE as CITY_NAME,
+		b.YEAR as YEAR,
+		c.INPUT_TIME as INPUT_TIME,
+		d.NAME as INPUTER_NAME,
+		e.NAME as	REPORT_ORG_NAME
+		from t4_c_area a
+		left join (select distinct YEAR from	t4_annual_report) b on true
+		left join t4_annual_report c on c.AREA =a.ID and c.YEAR = b.YEAR
+		left join t4_user d on d.ID = c.INPUTER
+		left join t4_org e on e.ID = d.ORG
+		left join t4_c_area f on f.ID = a.PARENT
+    <include refid="whereSql" />
+		order by b.YEAR, a.ID, c.INPUT_TIME
+		limit ${offset}, ${count}
+	</select>
+</mapper>

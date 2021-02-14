@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.StatStockMapper">
+<resultMap type="com.uc.app.zjjh.domain.StockStatistic" id="stockStatistic">
+  <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName"/>
+  <result column="COUNTY_NAME" jdbcType="VARCHAR" property="countyName"/>
+  <result column="WAREHOUSE" jdbcType="INTEGER" property="warehouse"/>
+  <result column="WAREHOUSE_NAME" jdbcType="VARCHAR" property="warehouseName"/>
+  <result column="CATEGORY" jdbcType="INTEGER" property="category"/>
+  <result column="CATEGORY_NAME" jdbcType="VARCHAR" property="categoryName"/>
+  <result column="UNIT_NAME" jdbcType="VARCHAR" property="unitName"/>
+  <result column="TOTAL_QUANTITY" jdbcType="DECIMAL" property="totalQuantity"/>
+  <result column="EXPIRING_QUANTITY" jdbcType="DECIMAL" property="expiringQuantity"/>
+  <result column="EXPIRED_QUANTITY" jdbcType="DECIMAL" property="expiredQuanyity"/>
+  <result column="AVIALABLE_QUANTITY" jdbcType="DECIMAL" property="avialableQuantity"/>
+  <result column="EXCEED_MAX_STOCK" jdbcType="BIT" property="exceedMaxStock"/>
+  <result column="UNDER_MIN_STOCK" jdbcType="BIT" property="underMinStock"/>  
+</resultMap>
+<sql id="selectByCategory">
+  select * 
+  from t4_stock a
+  left join 
+</sql>
+<sql id="selectAllCategories">
+
+</sql>
+<sql id="selectSql">
+ <choose> 
+ <when test="queryForm.category !=null">
+   <include refid="selectByCategory" />
+ </when>   
+ <otherwise>
+   <include refid="selectAllCategories" />
+ </otherwise>
+</choose>  
+</sql>
+<sql id="whereSql">
+</sql>
+
+<select id="selectCountOptimized" parameterType="com.uc.app.zjjh.forms.StatStockQueryForm" resultType="java.lang.Long">
+  select COUNT(*) 
+  from t4_stock a
+  left join t4_category b on b.ID = a.CATEGORY
+  left join t4_c_unit c on c.CODE = b.UNIT
+</select>
+
+<select id="selectOptimized" parameterType="map" resultMap="stockStatistic">
+  select
+  b.CITY as CITY,
+  b.AREA as COUNTY,
+  a.WAREHOUSE,
+  a.CATEGORY, 
+  sum(a.QUANTITY) as TOTAL_QUANTITY,
+  sum(IF(a.EXPIRED_DATE &lt; CURRENT_DATE(), 0, a.QUANTITY)) as AVIALABLE_QUANTITY,
+  sum(IF(a.EXPIRED_DATE &lt; CURRENT_DATE(), a.QUANTITY, 0)) as EXPIRED_QUANTITY,
+  sum(IF(
+         DATEDIFF(a.EXPIRED_DATE, CURRENT_DATE()) &lt; c.EXPIRED_WARNING_LEAD 
+         and a.EXPIRED_DATE &gt; CURRENT_DATE, a.QUANTITY, 0)) as EXPIRING_QUANTITY            
+  from t4_stock a
+  left join t4_org b on b.ID = a.WAREHOUSE
+  left join t4_category c on c.ID = a.CATEGORY
+  left join t4_c_unit d on d.CODE = c.UNIT
+  left join t4_c_area e on e.ID = b.CITY
+  left join t4_c_area f on f.ID = b.AREA
+  <where>
+    <trim prefixOverrides="and">
+      <if test="queryForm.queryCategory != null">
+        and c.ID = #{queryForm.queryCategory, jdbcType=INTEGER}
+      </if>
+      <if test="queryForm.queryTotalFrom != null">
+        and a.QUANTITY &gt;
+      </if>
+    </trim>
+  </where>
+  group by CITY, COUNTY, WAREHOUSE, CATEGORY
+  
+</select>
+</mapper>

@@ -1,0 +1,209 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.StockInOutMapper">
+  <resultMap type="com.uc.app.zjjh.domain.StockInOutDetail" id="stockInOutDetail">
+    <id column="ID" jdbcType="INTEGER" property="id"/>
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="STOCK_IN_OUT" jdbcType="INTEGER" property="stockInOut"/>
+    <result column="STOCK" jdbcType="INTEGER" property="stock"/>    
+    <result column="CATEGORY" jdbcType="INTEGER" property="category"/>
+    <result column="BATCH_NO" jdbcType="VARCHAR" property="batchNo"/>
+    <result column="QUANTITY" jdbcType="DECIMAL" property="quantity"/>
+    <result column="PRODUCT_DATE" jdbcType="DATE" property="productDate"/>
+    <result column="EXPIRED_DATE" jdbcType="DATE" property="expiredDate"/>
+    <result column="MANUFACTURER_NAME" jdbcType="VARCHAR" property="manufacturerName"/>
+    <result column="MANUFACTURER" jdbcType="INTEGER" property="manufacturer"/>
+    <result column="COMMENT" jdbcType="VARCHAR" property="comment"/>
+    <result column="CATEGORY_NAME" jdbcType="VARCHAR" property="categoryName"/>
+    <result column="UNIT_NAME" jdbcType="VARCHAR" property="unitName"/>
+  </resultMap>
+
+  <resultMap type="com.uc.app.zjjh.domain.StockInOut" id="stockInOut">
+    <id column="ID" jdbcType="INTEGER" property="id"/>
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="WAREHOUSE" jdbcType="INTEGER" property="warehouse"/>
+    <result column="OPERATION" jdbcType="VARCHAR" property="operation"/>
+    <result column="RECIPICENT" jdbcType="VARCHAR" property="recipient"/>
+    <result column="OPERATOR" jdbcType="VARCHAR" property="operator"/>
+    <result column="OPT_DATE" jdbcType="DATE" property="optDate"/>
+    <result column="USAGE" jdbcType="VARCHAR" property="usage"/>
+    <result column="INPUTER" jdbcType="INTEGER" property="inputer"/>
+    <result column="INPUTER_NAME" jdbcType="VARCHAR" property="inputerName"/>
+    <result column="INPUT_TIME" jdbcType="TIMESTAMP" property="inputTime"/>
+    <result column="WAREHOUSE_NAME" jdbcType="VARCHAR" property="warehouseName"/>
+    <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName"/>
+    <result column="COUNTY_NAME" jdbcType="VARCHAR" property="countyName"/>
+    <collection property="details" ofType="com.uc.app.zjjh.domain.StockInOutDetail" select="selectStockInOutDetailByStockInOut" column="ID"/>
+  </resultMap>
+  <select id="selectStockInOutDetailByStockInOut" parameterType="java.lang.Long" resultMap="stockInOutDetail">
+    select 
+    `a`.`ID`, 
+    `a`.`UUID`, 
+    `a`.`STOCK`, 
+    `a`.`STOCK_IN_OUT`,
+    `a`.`CATEGORY`,
+    `a`.`BATCH_NO`,     
+    `a`.`QUANTITY`,
+    `a`.`PRODUCT_DATE`,
+    `a`.`EXPIRED_DATE`,
+    `a`.`MANUFACTURER` as `MANUFACTURER`, 
+    `f`.`VALUE` as `MANUFACTURER_NAME`,
+    `a`.`COMMENT`,
+    CONCAT_WS(' ', `b`.`NAME`, `c`.`VALUE`, `d`.`VALUE`) as `CATEGORY_NAME`,
+    `e`.`VALUE` as `UNIT_NAME`
+    from `t4_stock_in_out_detail` `a`
+    left join `t4_category` `b` on `b`.`ID` = `a`.`CATEGORY`
+    left join `t4_c_model` `c` on `c`.`CODE` = `b`.`CLASSIFY`
+    left join `t4_c_specification` `d` on `d`.`CODE` = `b`.`SPECIFICATION`
+    left join `t4_c_unit` `e` on `e`.`CODE` = `b`.`UNIT`
+    left join `t4_c_manufacturer` `f` on `f`.`CODE` = `a`.`MANUFACTURER`
+    where `a`.`STOCK_IN_OUT` = #{stock_in_out, jdbcType=INTEGER}
+  </select>
+  <sql id="selectSql">
+    select 
+    `a`.`ID`, 
+    `a`.`UUID`, 
+    `a`.`WAREHOUSE`,
+    `a`.`OPERATION`, 
+    `a`.`RECIPIENT`, 
+    `a`.`OPERATOR`, 
+    `a`.`OPT_DATE`, 
+    `a`.`USAGE`, 
+    `a`.`INPUTER`, 
+    `a`.`INPUT_TIME`,
+    `b`.`NAME` as `INPUTER_NAME`,
+    `c`.`NAME` as `WAREHOUSE_NAME`,
+    `d`.`ID` as `CITY`,
+    `d`.`VALUE` as `CITY_NAME`,
+    `e`.`ID` as `COUNTY`,
+    `e`.`VALUE` as `COUNTY_NAME`
+    from `t4_stock_in_out` `a`
+    left join `t4_user` `b` on `b`.`ID` =`a`.`INPUTER`
+    left join `t4_org` `c` on `c`.`ID` = `a`.`WAREHOUSE`  
+    left join `t4_c_area` `d` on `d`.`ID` = `c`.`CITY`
+    left join `t4_c_area` `e` on `e`.`ID` = `c`.`AREA`  
+  </sql>
+  <sql id="whereSql">
+    <where>
+      <trim prefixOverrides="and">
+        <if test="queryForm.queryOperation !=null ">
+          and `a`.`OPERATION` = #{queryForm.queryOperation, jdbcType=VARCHAR} 
+        </if>
+        <if test="queryForm.queryOperator !=null">
+          and `a`.`OPERATOR` like '%${queryForm.queryOperator}%'
+        </if>
+        <if test="queryForm.queryRecipient !=null">
+          and `a`.`RECIPIENT` like '%${queryForm.queryRecipient}%'
+        </if>
+        <if test="queryForm.queryOptDateFrom !=null">
+          and `a`.`OPT_DATE` &gt;= #{queryForm.queryOptDateFrom, jdbcType=DATE}
+        </if>
+        <if test="queryForm.queryOptDateTo !=null">
+          and `a`.`OPT_DATE` &lt;= #{queryForm.queryOptDateTo, jdbcType=DATE}
+        </if>
+        <choose>        
+          <when test="queryForm.querySite !=null">
+            and `a`.`WAREHOUSE` = #{queryForm.querySite, jdbcType=INTEGER}
+          </when>
+          <otherwise>
+            <choose>
+              <when test="queryForm.queryArea !=null">
+                and `c`.`AREA` = #{queryForm.queryArea}
+              </when>
+              <when test="queryForm.queryCity !=null">
+                and `c`.`CITY` = #{queryForm.queryCity}
+              </when>
+            </choose>
+            <if test="queryForm.siteLimits.size() > 0">
+              and `a`.`WAREHOUSE` in (<foreach collection="queryForm.siteLimits" item="site" separator=",">${site}</foreach>)          
+            </if>                
+          </otherwise> 
+        </choose>     
+      </trim>
+    </where>
+  </sql>
+  <sql id="orderBySql">
+    <if test="queryForm.queryOrderByClause!=null and !queryForm.queryOrderByClause.empty">
+      order by ${queryForm.queryOrderByClause}
+    </if>
+  </sql>
+  <select id="selectById" parameterType="java.lang.Long" resultMap="stockInOut">
+    <include refid="selectSql" />
+    where `a`.`ID` = #{id, jdbcType=INTEGER}
+  </select>
+  <select id="selectByUuid" parameterType="java.lang.String" resultMap="stockInOut">
+    <include refid="selectSql" />
+    where `a`.`UUID` = #{uuid, jdbcType=VARCHAR}
+  </select>
+  <select id="selectIdByUuid" parameterType="java.lang.String" resultType="java.lang.Long">
+    select `ID` from `t4_stock_in_out`
+    where `UUID` = #{uuid, jdbcType=VARCHAR}
+  </select>
+  <select id="selectCountOptimized" parameterType="map" resultType="java.lang.Long">
+    select COUNT(*) from `t4_stock_in_out` `a`
+    left join `t4_user` `b` on `b`.`ID` =`a`.`INPUTER`
+    left join `t4_org` `c` on `c`.`ID` = `a`.`WAREHOUSE`
+    left join t4_c_area d on d.ID = c.CITY
+    left join t4_c_area e on e.ID = c.AREA
+    <include refid="whereSql" />    
+  </select>
+  <select id="selectOptimized" parameterType="map" resultMap="stockInOut">
+    <include refid="selectSql" />
+    <include refid="whereSql" />
+    <include refid="orderBySql" />
+    limit ${offset}, ${count}
+  </select>
+  <insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.StockInOut">
+    insert into `t4_stock_in_out`
+    (`UUID`,`WAREHOUSE`, `OPERATION`, `OPERATOR`, `RECIPIENT`, `OPT_DATE`, `USAGE`, `INPUTER`, `INPUT_TIME`)
+    values
+    (#{uuid, jdbcType=VARCHAR},#{warehouse, jdbcType=INTEGER}, #{operation, jdbcType=VARCHAR}, 
+     #{operator, jdbcType=VARCHAR}, #{recipient, jdbcType=VARCHAR}, #{optDate, jdbcType=DATE}, 
+     #{usage, jdbcType=VARCHAR}, #{inputer, jdbcType=INTEGER}, #{inputTime, jdbcType=TIMESTAMP})
+  </insert>
+  <update id="updateDetail" parameterType="com.uc.app.zjjh.domain.StockInOut">
+    update `t4_stock_in_out`
+    set
+     `OPERATOR` = #{operator, jdbcType=VARCHAR},
+     `RECIPIENT` = #{recipient, jdbcType=VARCHAR},
+     `OPT_DATE` = #{optDate, jdbcType=DATE},
+     `USAGE` = #{usage, jdbcType=VARCHAR},
+    where `ID` = #{id, jdbcType=INTEGER}
+  </update>
+  <update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.StockInOut">
+    update `t4_stock_in_out`
+    <set>
+      <if test="operation !=null">
+        `OPERATION` = #{operation, jdbcType=VARCHAR},
+      </if>
+      <if test="operator !=null">
+        `OPERATOR` = #{operator, jdbcType=VARCHAR},
+      </if>
+      <if test="recipient !=null">
+        `RECIPIENT` = #{recipient, jdbcType=VARCHAR},
+      </if>
+      <if test="optDate !=null">
+        `OPT_DATE` = #{optDate, jdbcType=DATE},
+      </if>
+      <if test="usage !=null">
+        `USAGE` = #{usage, jdbcType=VARCHAR},
+      </if>
+    </set>
+  </update>
+  <insert id="insertStockInOutDetails" parameterType="map">
+    insert into `t4_stock_in_out_detail`
+    (`UUID`, `STOCK_IN_OUT`, `CATEGORY`,`BATCH_NO`, `PRODUCT_DATE`, `EXPIRED_DATE`, `QUANTITY`, `MANUFACTURER`, `STOCK`, `COMMENT`)
+    values
+    <foreach collection="details" item="detail" separator=",">
+    (UUID(), #{detail.stockInOut, jdbcType=INTEGER}, #{detail.category, jdbcType=INTEGER},
+    #{detail.batchNo, jdbcType=VARCHAR}, #{detail.productDate, jdbcType=DATE}, #{detail.expiredDate, jdbcType=DATE}, 
+     #{detail.quantity, jdbcType=DECIMAL}, #{detail.manufacturer, jdbcType=INTEGER}, #{detail.stock, jdbcType=INTEGER},
+    #{detail.comment, jdbcType=VARCHAR})
+    </foreach>
+  </insert>
+  <delete id="deleteStockInOutDetails" parameterType="java.lang.Long">
+    delete from `t4_stock_in_out_detail`
+    where `STOCK_IN_OUT` = #{stockInOut,jdbcType=INTEGER}
+  </delete>
+  
+</mapper>

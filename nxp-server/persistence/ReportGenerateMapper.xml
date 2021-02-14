@@ -1,0 +1,184 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.ReportGenerateMapper">
+	<insert id="insertTask" parameterType="com.uc.app.zjjh.domain.ReportGenerateTaskItem">
+		insert into t4_report_task (UUID, TYPE, YEAR, MONTH, QUARTER)
+		values (#{uuid, jdbcType=CHAR}, #{type,jdbcType=INTEGER}, #{year,
+		jdbcType=INTEGER},#{month, jdbcType=INTEGER},
+		#{quarter,jdbcType=INTEGER})
+	</insert>
+	<select id="selectTaskId" parameterType="java.lang.String"
+		resultType="java.lang.Long">
+		select ID from t4_report_task where UUID = #{uuid, jdbcType=CHAR}
+	</select>
+	<update id="updateTask" parameterType="com.uc.app.zjjh.domain.ReportGenerateTaskItem">
+		update t4_report_task
+		<set>
+			<if test="beginTime != null">
+				BEGIN_TIME = #{beginTime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="finishedTime != null">
+				FINISHED_TIME = #{finishedTime,jdbcType=TIMESTAMP},
+			</if>
+			<if test="state != null">
+				STATE = #{state,jdbcType=INTEGER},
+			</if>
+			<if test="remark !=null">
+				REMARK = #{remark,jdbcType=VARCHAR}
+			</if>
+		</set>
+		where ID = #{id, jdbcType=INTEGER}
+	</update>
+	<sql id="queryTypeColumns">
+    <choose>
+      <when test="queryType == 'yearly'">
+        ${year} as YEAR,
+      </when>
+      <when test="queryType == 'quarterly'">
+        ${year} as YEAR, ${quarter} as QUARTER,
+      </when>
+      <otherwise>
+        ${year} as YEAR, ${month} as MONTH, 
+      </otherwise>
+    </choose>
+	
+	</sql>
+	<sql id="queryTypeCondition">
+	  <choose>
+	    <when test="queryType == 'yearly'">
+	      and year(d.SERVICE_DATE) = #{year, jdbcType=INTEGER}
+	    </when>
+	    <when test="queryType == 'quarterly'">
+        and year(d.SERVICE_DATE) = #{year, jdbcType=INTEGER} and quarter(d.SERVICE_DATE) = #{quarter, jdbcType=INTEGER}
+	    </when>
+	    <otherwise>
+        and year(d.SERVICE_DATE) = #{year, jdbcType=INTEGER} and month(d.SERVICE_DATE) = #{month, jdbcType=INTEGER} 
+	    </otherwise>
+	  </choose>
+	</sql>
+	<sql id="selectReport">
+	select
+	  <include refid="queryTypeColumns" />	  
+	  t.CITY,
+	  t.AREA as COUNTY,     
+    t.SERVICE_TIMES,     
+    t.SERVICE_PERSON,     
+    t.STRANGER,     
+    (t.SERVICE_PERSON - t.STRANGER) as FREQUENTER,     
+    t.MALES,     
+    (t.SERVICE_PERSON - t.MALES) as FEMALES,     
+    t.AGE_LE35,     
+    (t.SERVICE_PERSON - t.AGE_LE35) as AGE_GT35,     
+    t.TRANS_TIMES,     
+    t.TRANS_PERSON,     
+    t.ORIGINAL_POSITIVE,     
+    t.HIV_NEW_CASES,     
+    t.HIV_EXAMINED,     
+    if(t.SERVICE_PERSON - t.POSITIVE=0, null, t.HIV_EXAMINED/(t.SERVICE_PERSON - t.POSITIVE)) as HIV_EXAMINE_RATE,     
+    t.TRANS_MMT,    
+    if(t.TRANS_MMT_BASE=0, null, t.TRANS_MMT/t.TRANS_MMT_BASE) as TRANS_MMT_RATE,     
+    t.TRANS_ANTI_THERAPY,     
+    t.NEEDLE_PROVIDED,         
+    t.NEEDLE_RECYCLED,         
+    t.CONDOMS_PROVIDED,         
+    t.IEC_DOC_PROVIDED   
+  from (    
+  select    
+    a.PARENT as CITY,    
+    a.ID as AREA,    
+    count(d.ID) as SERVICE_TIMES,   
+    count(distinct c.ID, if(d.ID is not null, 1, null)) as SERVICE_PERSON,   
+    count(distinct c.ID, if(d.STRANGER, 1, null)) as STRANGER,   
+    count(distinct c.ID, if(c.SEX='男' and d.ID is not null, 1, null)) as MALES,   
+    count(distinct c.ID, if(date_add(c.BIRTHDAY, interval + 35 year) &gt;= d.SERVICE_DATE, 1, null)) as AGE_LE35,   
+    sum(IFNULL(d.TRANS_MMT,0)) + sum(IFNULL(d.TRANS_VCT, 0)) as TRANS_TIMES,   
+    count(distinct c.ID, if(d.TRANS_MMT or d.TRANS_VCT, 1, null)) as TRANS_PERSON,   
+    count(distinct c.ID, if((c.POSITIVE and d.ID is not null) or        
+    exists(          
+      select 1 from t4_work_record s           
+            where s.OBJECT_ID=c.ID                      
+            and s.TRANS_VCT           
+            and s.HIV_RESULT &lt;&gt; '阴性') , 1, null)) as POSITIVE,   
+    count(distinct c.ID, if(c.POSITIVE and d.ID is not null, 1, null)) as ORIGINAL_POSITIVE,        
+    count(distinct c.ID, if(d.HIV_RESULT &lt;&gt; '阴性', 1, null)) as HIV_NEW_CASES,   
+    count(distinct c.ID, if(d.TRANS_VCT, 1, null)) as HIV_EXAMINED,   
+    count(if(d.TRANS_MMT, 1, null)) as TRANS_MMT,   
+    count(distinct c.ID, if(b.HAS_MMT and d.ID is not null, 1, null)) as TRANS_MMT_BASE,   
+    count(distinct c.ID, if(d.TRANS_ANTI_THERAPY, 1, null)) as TRANS_ANTI_THERAPY,   
+    sum(IFNULL(d.NEEDLE_PROVIDED, 0)) as NEEDLE_PROVIDED,   
+    sum(IFNULL(d.NEEDLE_RECYCLED, 0)) as NEEDLE_RECYCLED,   
+    sum(IFNULL(d.CONDOMS_PROVIDED,0)) as CONDOMS_PROVIDED,   
+    sum(IFNULL(d.IEC_DOC_PROVIDED,0)) as IEC_DOC_PROVIDED   
+    from t4_c_area a   
+    left join t4_org b on b.AREA = a.ID and b.VALID and b.TYPE='交换点'
+    left join t4_objects c on c.SITE = b.ID   
+    left join t4_work_record d on d.OBJECT_ID = c.ID <include refid="queryTypeCondition" />
+    where a.TYPE='COUNTY'  
+    group by a.PARENT, a.ID with rollup) t
+    order by t.CITY, t.AREA
+	</sql>
+	<sql id="reportColumns">
+	  CITY,
+    COUNTY,     
+    SERVICE_TIMES,     
+    SERVICE_PERSON,     
+    STRANGER,     
+    FREQUENTER,     
+    MALES,     
+    FEMALES,     
+    AGE_LE35,     
+    AGE_GT35,     
+    TRANS_TIMES,     
+    TRANS_PERSON,     
+    POSITIVE,     
+    HIV_NEW_CASES,     
+    HIV_EXAMINED,     
+    HIV_EXAMINE_RATE,     
+    TRANS_MMT,
+    TRANS_MMT_RATE,     
+    TRANS_ANTI_THERAPY,     
+    NEEDLE_PROVIDED,         
+    NEEDLE_RECYCLED,         
+    CONDOMS_PROVIDED,         
+    IEC_DOC_PROVIDED
+	</sql>
+	<insert id="insertYearlyReport" parameterType="map">
+	  <bind name="queryType" value="'yearly'"/>
+	  insert into t4_report_y (YEAR, <include refid="reportColumns" />) 
+	  <include refid="selectReport" />
+	</insert>
+	<insert id="insertQuarterlyReport" parameterType="map">
+	  <bind name="queryType" value="'quarterly'"/>
+	  insert into t4_report_q (YEAR, QUARTER, <include refid="reportColumns" />) 
+	  <include refid="selectReport" />
+	</insert>
+	<insert id="insertMonthlyReport" parameterType="map">
+	  <bind name="queryType" value="'monthly'"/>
+	  insert into t4_report_m (YEAR, MONTH, <include refid="reportColumns" />)
+	  <include refid="selectReport" />
+	</insert>
+
+	<delete id="deleteReport" parameterType="map">
+		delete from ${tableName}  
+		where year = #{year, jdbcType=INTEGER}
+		<if test="timeColum != null">
+		 and ${timeColumn}=#{time,jdbcType=INTEGER}
+		</if> 
+	</delete>
+	<delete id="deleteAllReporter">
+	  delete from t4_report_y;
+	  delete from t4_report_q;
+	  delete from t4_report_m;
+	</delete>
+	<select id="selectFirstDate" resultType="java.util.Date">
+	  select min(a.SERVICE_DATE) from t4_work_record a;
+	</select>
+	<select id="selectLastDate" resultType="java.util.Date">
+	  select max(a.SERVICE_DATE) from t4_work_record a;
+	</select>
+	<select id="selectYearRange" resultType="map">
+	  select year(SERVICE_DATE) as YEAR, month(SERVICE_DATE) as MONTH from t4_work_record
+	  group by YEAR, MONTH
+	  order by YEAR, MONTH
+	</select>
+</mapper>

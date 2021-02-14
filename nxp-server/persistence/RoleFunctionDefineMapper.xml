@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.RoleFunctionDefineMapper">
+  <resultMap id="roleDetail" type="com.uc.app.zjjh.domain.RoleForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="NAME" jdbcType="VARCHAR" property="name" />
+    <result column="DESCRIPTION" jdbcType="VARCHAR" property="description" />
+    <result column="VALID" jdbcType="BIT" property="valid" />
+    <result column="INTERNAL" jdbcType="BIT" property="internal" />
+  </resultMap>
+  <resultMap id="functionDetail" type="com.uc.app.zjjh.domain.FunctionForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="NAME" jdbcType="VARCHAR" property="name" />
+    <result column="URI" jdbcType="VARCHAR" property="uri" />
+    <result column="DESCRIPTION" jdbcType="VARCHAR" property="description" />
+    <result column="VALID" jdbcType="BIT" property="valid" />
+    <result column="URI_PATTERN" jdbcType="VARCHAR" property="uriPattern" />
+  </resultMap>
+  <resultMap id="roleFunctionDefine" type="com.uc.app.zjjh.domain.RoleFunctionDefineImpl">
+    <id column="ROLE" jdbcType="INTEGER" property="roleId" />
+    <id column="FUNC" jdbcType="INTEGER" property="functionId" />
+    <association property="function" column="FUNC" select="selectFunction" />
+    <association property="role" column="ROLE" select="selectRole" /> 
+  </resultMap>
+  
+  <select id="selectRoleFunctionDefines" resultMap="roleFunctionDefine">
+    select ROLE, FUNC from T4_ROLE_FUNC order by FUNC 
+  </select>  
+  
+  <select id="selectFunction" parameterType="java.lang.Long" resultMap="functionDetail">
+    select * from t4_FUNCTION where ID=#{id,jdbcType=INTEGER}
+  </select>
+  <select id="selectRole" parameterType="java.lang.Long" resultMap="roleDetail">
+    select * from t4_ROLE where ID=#{id,jdbcType=INTEGER}
+  </select>
+</mapper>

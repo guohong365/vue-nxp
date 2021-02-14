@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd" >
+<mapper namespace="com.uc.app.zjjh.persistence.StatWorkRecordMapper2" >
+  <resultMap id="statWorkRecordDetail" type="com.uc.app.zjjh.domain.StatWorkRecordForm" >
+    <result column="NATIONALITY" jdbcType="VARCHAR" property="nationality"/>
+    <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName"/>
+    <result column="AREA_NAME" jdbcType="VARCHAR" property="areaName"/>
+    <result column="SERVICE_TIMES" jdbcType="INTEGER" property="serviceTimes"/>
+    <result column="SERVICE_PERSON" jdbcType="INTEGER" property="servicePerson"/>
+    <result column="STRANGER" jdbcType="INTEGER" property="stranger"/>
+    <result column="FREQUENTER" jdbcType="INTEGER" property="frequenter"/>
+    <result column="MALES" jdbcType="INTEGER" property="males"/>
+    <result column="FEMALES" jdbcType="INTEGER" property="females"/>
+    <result column="AGE_LE35" jdbcType="INTEGER" property="ageLe35"/>
+    <result column="AGE_GT35" jdbcType="INTEGER" property="ageGt35"/>
+    <result column="TRANS_TIMES" jdbcType="INTEGER" property="transTimes"/>
+    <result column="TRANS_PERSON" jdbcType="INTEGER" property="transPerson"/>
+    <result column="POSITIVE" jdbcType="INTEGER" property="positive"/>
+    <result column="ORIGINAL_POSITIVE" jdbcType="INTEGER" property="originalPositive"/>
+    <result column="HIV_NEW_CASES" jdbcType="INTEGER" property="hivNewCases"/>
+    <result column="HIV_EXAMINED" jdbcType="INTEGER" property="hivExamined"/>
+    <result column="HIV_EXAMINE_RATE" jdbcType="DECIMAL" property="hivExamineRate"/>
+    <result column="TRANS_MMT" jdbcType="INTEGER" property="transMmt"/>
+    <result column="TRANS_MMT_RATE" jdbcType="DECIMAL" property="mmtTransRate"/>
+    <result column="TRANS_ANTI_THERAPY" jdbcType="INTEGER" property="transAntiTherapy"/>
+    <result column="NEEDLE_PROVIDED" jdbcType="INTEGER" property="needleProvided"/>
+    <result column="NEEDLE_RECYCLED" jdbcType="INTEGER" property="needleRecycled"/>
+    <result column="CONDOMS_PROVIDED" jdbcType="INTEGER" property="condomsProvided"/>
+    <result column="IEC_DOC_PROVIDED" jdbcType="INTEGER" property="iecDocProvided"/>
+  </resultMap>
+  
+ <sql id="orgOnSql">
+   <choose>
+     <when test="queryForm.queryArea != null">
+       and b.AREA = #{queryForm.queryArea, jdbcType=INTEGER}
+     </when>
+     <otherwise>
+       <if test="queryForm.queryCity !=null">
+         and b.CITY = #{queryForm.queryCity, jdbcType=INTEGER}
+       </if>
+     </otherwise>
+   </choose>
+   <if test="!queryForm.siteLimits.empty">
+     and b.ID in (<foreach collection="queryForm.siteLimits" item="orgId" separator=",">${orgId}</foreach>)
+   </if>
+ </sql>
+
+
+ <sql id="selectSql">
+  SELECT
+    c.CITY as CITY,
+    c.AREA as COUNTY,
+    b.NATIONALITY,
+    count(a.ID) as SERVICE_TIMES,
+    count(DISTINCT a.OBJECT_ID) as SERVICE_PERSON,
+    count(DISTINCT b.ID, if(a.STRANGER, 1, null)) as STRANGER,
+    count(DISTINCT b.ID, if(b.SEX = '男', 1, null)) as MALES,
+    count(DISTINCT b.ID, if(date_add(b.BIRTHDAY, INTERVAL + 35 YEAR) &gt;= a.SERVICE_DATE, 1 , null)) as AGE_LE35,
+    count(DISTINCT b.ID, if(a.TRANS_MMT or a.TRANS_VCT, 1, null)) as TRANS_PERSON,
+    count(DISTINCT b.ID, if(b.POSITIVE or EXISTS(
+        SELECT 1 FROM t4_work_record s
+        WHERE
+            s.OBJECT_ID = b.ID
+            and s.TRANS_VCT and s.HIV_RESULT &lt;&gt; '阴性'
+            <if test="queryForm.queryFrom !=null">
+            and s.HIV_RPT_DATE &lt; #{queryForm.queryFrom, jdbcType=DATE}    
+            </if>
+        ), 1, null)) as POSITIVE,
+    count(DISTINCT b.ID, if(b.POSITIVE, 1, null)) as ORIGINAL_POSITIVE,
+    count(DISTINCT b.ID, if(a.TRANS_VCT and a.HIV_RESULT &lt;&gt; '阴性' 
+        <if test="queryForm.queryFrom !=null">
+        and a.HIV_RPT_DATE &lt; #{queryForm.queryFrom, jdbcType=DATE}
+        </if>
+        , 1, null)) as HIV_NEW_CASES,
+    count(DISTINCT b.ID, if(a.TRANS_VCT, 1, null)) as HIV_EXAMINED,
+    count(DISTINCT b.ID, if(c.HAS_MMT,1, null)) as TRANS_MMT_BASE,
+    (sum(a.TRANS_MMT) + sum(a.TRANS_VCT)) as TRANS_TIMES,
+    count(DISTINCT b.ID, if(a.TRANS_MMT, 1, null)) as TRANS_MMT,
+    count(DISTINCT b.ID, if(a.TRANS_ANTI_THERAPY, 1, null)) as TRANS_ANTI_THERAPY,
+    sum(a.NEEDLE_PROVIDED) as NEEDLE_PROVIDED,
+    sum(a.NEEDLE_RECYCLED) as NEEDLE_RECYCLED,
+    sum(a.CONDOMS_PROVIDED) as CONDOMS_PROVIDED,
+    sum(a.IEC_DOC_PROVIDED) as IEC_DOC_PROVIDED
+    FROM t4_work_record a
+    LEFT JOIN t4_objects b on b.ID = a.OBJECT_ID
+    LEFT JOIN t4_org c on c.ID = b.SITE
+    WHERE
+        b.NATIONALITY &lt;&gt; 1
+        <if test="queryForm.queryFrom != null">
+        and a.SERVICE_DATE &gt;= #{queryForm.queryFrom, jdbcType=DATE} 
+        </if>
+        <if test="queryForm.queryTo != null">        
+        and a.SERVICE_DATE &lt;= #{queryForm.queryTo, jdbcType=DATE}
+        </if>
+        <choose>
+          <when test="queryForm.queryArea !=null">
+            and c.AREA = #{queryForm.queryArea, jdbcType=INTEGER}
+          </when>
+          <when test="queryForm.queryCity !=null">
+            and c.CITY = #{queryForm.queryCity, jdbcType=INTEGER}
+          </when>
+        </choose>
+    GROUP BY c.CITY, c.AREA, b.NATIONALITY
+</sql>
+ <sql id="selectCountSql">
+  SELECT count(*)
+  FROM t4_work_record a
+  LEFT JOIN t4_objects b on b.ID = a.OBJECT_ID
+  LEFT JOIN t4_org c on c.ID = b.SITE
+  WHERE 
+    b.NATIONALITY &lt;&gt; 1
+    <if test="queryForm.queryFrom != null">
+    and a.SERVICE_DATE &gt;=#{queryForm.queryFrom, jdbcType=DATE}
+    </if>
+    <if test="queryForm.queryTo != null"> 
+    and a.SERVICE_DATE &lt;= #{queryForm.queryTo, jdbcType=DATE}
+    </if>
+    <choose>
+      <when test="queryForm.queryArea !=null">
+        and a.ID = #{queryForm.queryArea, jdbcType=INTEGER} 
+      </when>
+      <otherwise>
+        <if test="queryForm.queryCity !=null">
+          and a.PARENT = #{queryForm.queryCity, jdbcType=INTEGER}
+        </if>      
+      </otherwise>
+    </choose>
+  GROUP BY c.CITY, c.AREA, b.NATIONALITY
+</sql>
+
+  <select id="selectCountOptimized" parameterType="map" resultType="java.lang.Long">
+    select count(*) from (<include refid="selectCountSql" />) t
+  </select>  
+
+  <select id="selectOptimized" resultMap="statWorkRecordDetail" parameterType="map" >  
+  select    
+    t4.VALUE as CITY_NAME,
+    t5.VALUE as AREA_NAME,
+    t6.VALUE as NATIONNALITY,
+    t.SERVICE_TIMES,
+    t.SERVICE_PERSON,
+    t.STRANGER,
+    (t.SERVICE_PERSON - t.STRANGER) as FREQUENTER,
+    t.MALES,
+    (t.SERVICE_PERSON - t.MALES) as FEMALES,
+    t.AGE_LE35,
+    (t.SERVICE_PERSON - t.AGE_LE35) as AGE_GT35,
+    t.TRANS_TIMES,
+    t.TRANS_PERSON,
+    t.POSITIVE,
+    t.ORIGINAL_POSITIVE,
+    t.HIV_NEW_CASES,
+    t.HIV_EXAMINED,
+    if(t.SERVICE_PERSON - t.POSITIVE=0, null, t.HIV_EXAMINED/(t.SERVICE_PERSON - t.POSITIVE)) as HIV_EXAMINE_RATE,
+    t.TRANS_MMT,
+    t.TRANS_MMT_BASE,
+    if(t.TRANS_MMT_BASE=0, null, t.TRANS_MMT/t.TRANS_MMT_BASE) as TRANS_MMT_RATE,
+    t.TRANS_ANTI_THERAPY,
+    t.NEEDLE_PROVIDED,    
+    t.NEEDLE_RECYCLED,    
+    t.CONDOMS_PROVIDED,    
+    t.IEC_DOC_PROVIDED
+  from (<include refid="selectSql" />) t
+  left join t4_c_area t4 on t4.ID = t.CITY
+  left join t4_c_area t5 on t5.ID = t.COUNTY
+  left join t4_c_nationality t6 on t6.CODE = t.NATIONALITY
+  order by t.CITY, t.COUNTY
+  limit ${offset},${count}
+</select>
+</mapper>

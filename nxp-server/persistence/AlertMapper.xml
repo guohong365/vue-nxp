@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.AlertMapper">
+  <resultMap id="noticeDetail" type="com.uc.app.zjjh.domain.NoticeForm">
+    <id column="ID" jdbcType="INTEGER" property="id" />
+    <result column="UUID" jdbcType="VARCHAR" property="uuid"/>
+    <result column="TITLE" jdbcType="VARCHAR" property="title" />
+    <result column="AUTHOR" jdbcType="INTEGER" property="author" />
+    <result column="CREATE_TIME" jdbcType="TIMESTAMP" property="createTime" />
+    <result column="MODIFY_TIME" jdbcType="TIMESTAMP" property="modifyTime" />
+    <result column="PUBLISHER" jdbcType="INTEGER" property="publisher" />
+    <result column="PUBLISH_TIME" jdbcType="TIMESTAMP" property="publishTime" />
+    <result column="EXPIRE_TIME" jdbcType="TIMESTAMP" property="expireTime" />
+    <result column="MAIN_HTML" jdbcType="VARCHAR" property="mainHtml" />
+    <result column="SUB_TITILE" jdbcType="VARCHAR" property="subTitile" />
+    <result column="IMPORTANT_LEVEL" jdbcType="INTEGER" property="importantLevel" />
+    <result column="AUTHOR_NAME" jdbcType="VARCHAR" property="authorName" />
+    <result column="PUBLISHER_NAME" jdbcType="VARCHAR" property="publisherName" />
+    <result column="EXPIRED" jdbcType="BIT" property="expired" />
+    <result column="LEVEL_NAME" jdbcType="VARCHAR" property="levelName" />
+  </resultMap>
+  
+  <resultMap type="com.uc.app.zjjh.domain.StockAlertForm" id="stockAlert">
+  <result column="TOTAL" jdbcType="DECIMAL" property="total"/>
+  <result column="AVIALABLE" jdbcType="DECIMAL" property="avialable"/>
+  <result column="EXPIRED" jdbcType="DECIMAL" property="expired"/>
+  <result column="EXPIRING" jdbcType="DECIMAL" property="expiring"/>  
+  <result column="EXCEED_MAX" jdbcType="BIT" property="exceededMax"/>
+  <result column="UNDER_MIN" jdbcType="BIT" property="underMin"/>
+  <result column="CATEGORY_NAME" jdbcType="VARCHAR" property="categoryName"/>
+  <result column="UNIT" jdbcType="VARCHAR" property="unit"/>
+</resultMap>
+
+<select id="selectNoticesCount" parameterType="map" resultType="java.lang.Long">
+  select count(*) 
+  from t4_article a
+  where
+    (a.EXPIRE_TIME IS NULL OR a.EXPIRE_TIME &gt; NOW()) 
+    AND a.IMPORTANT_LEVEL &gt;= #{level, jdbcType=INTEGER}    
+</select>
+<select id="selectNotices" parameterType="map" resultMap="noticeDetail">
+  SELECT
+  		a.ID as ID, 
+        a.TITLE AS TITLE,
+        a.AUTHOR AS AUTHOR,
+        a.CREATE_TIME AS CREATE_TIME,
+        a.MODIFY_TIME AS MODIFY_TIME,
+        a.PUBLISHER AS PUBLISHER,
+        a.PUBLISH_TIME AS PUBLISH_TIME,
+        a.EXPIRE_TIME AS EXPIRE_TIME,
+        a.MAIN_HTML AS MAIN_HTML,
+        a.SUB_TITILE AS SUB_TITILE,
+        a.IMPORTANT_LEVEL AS IMPORTANT_LEVEL,
+        b.NAME AS AUTHOR_NAME,
+        c.NAME AS PUBLISHER_NAME,
+        d.VALUE AS LEVEL_NAME
+    FROM
+        t4_article a
+        LEFT JOIN t4_user b ON b.ID = a.AUTHOR
+        LEFT JOIN t4_user c ON c.ID = a.PUBLISHER
+        LEFT JOIN t4_c_article_level d ON d.CODE = a.IMPORTANT_LEVEL
+    WHERE
+    	(a.EXPIRE_TIME IS NULL OR a.EXPIRE_TIME &gt; NOW()) 
+    	AND a.IMPORTANT_LEVEL &gt;= #{level, jdbcType=INTEGER}
+    ORDER BY 
+    	IMPORTANT_LEVEL DESC, PUBLISH_TIME DESC
+    LIMIT ${count}	
+    	     
+</select>
+<select id="selectStockAlert" parameterType="map" resultMap="stockAlert">
+  select   
+  concat_ws(b.NAME, ' ', c.VALUE) as CATEGORY_NAME,
+  sum(a.QUANTITY) as TOTAL,
+  sum(IF(a.EXPIRED_DATE &lt; CURRENT_DATE(), 0, a.QUANTITY)) as AVIALABLE,
+  sum(IF(a.EXPIRED_DATE &lt; CURRENT_DATE(), a.QUANTITY, 0)) as EXPIRED,
+  sum(IF(
+         DATEDIFF(a.EXPIRED_DATE, CURRENT_DATE()) &lt; b.EXPIRED_WARNING_LEAD 
+         and a.EXPIRED_DATE &gt; CURRENT_DATE, a.QUANTITY, 0)) as EXPIRING,            
+  d.VALUE as UNIT         
+  from t4_stock a
+  left join t4_category b on b.ID = a.CATEGORY
+  left join t4_c_specification c on c.CODE = b.SPECIFICATION
+  left join t4_c_unit d on d.CODE = b.UNIT
+  where 
+  b.NAME = '注射器' and a.WAREHOUSE = #{warehouse,jdbcType=INTEGER}   
+  group by a.CATEGORY
+  having EXPIRED &gt; 0 or EXPIRING &gt; 0
+  limit ${count}
+</select>
+</mapper>

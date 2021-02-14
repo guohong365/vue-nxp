@@ -1,0 +1,92 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper	namespace="com.uc.app.zjjh.persistence.ProceedingSituationMapper">
+  <resultMap type="com.uc.app.zjjh.domain.ProceedingSituationForm" id="proceedingSituation">
+    <result column="CITY_NAME" jdbcType="VARCHAR" property="cityName"/>
+    <result column="COUNTY_NAME" jdbcType="VARCHAR" property="countyName"/>
+    <result column="COUNTY_COUNT" jdbcType="INTEGER" property="countyCount"/>
+    <result column="COUNTY_COUNT_HAS_DATA" jdbcType="INTEGER" property="countyCountHasData"/>
+    <result column="SITES_COUNT" jdbcType="INTEGER" property="sitesCount"/>
+    <result column="EMPLOYEE_COUNT" jdbcType="INTEGER" property="employeeCount"/>
+    <result column="OBJECTS_COUNT" jdbcType="INTEGER" property="objectsCount"/>    
+  </resultMap>
+  
+  <select id="selectCountOptimized" resultType="java.lang.Long" parameterType="map">
+    select count(*) from t4_c_area a
+    where a.VALID
+    <choose>
+      <when test="queryForm.queryLevel==0">
+        and a.TYPE='COUNTY'
+        <choose>
+          <when test="queryForm.queryArea !=null">
+            and a.ID = #{queryForm.queryArea, jdbcType=INTEGER}
+          </when>
+          <otherwise>
+            <if test="queryForm.queryCity != null">
+              and a.PARENT = #{queryForm.queryCity, jdbcType=INTEGER}
+            </if>  
+          </otherwise>
+        </choose>
+      </when>
+      <otherwise>
+        and a.TYPE='CITY'
+        <if test="queryForm.queryCity != null">
+          and a.ID = #{queryForm.queryCity, jdbcType=INTEGER}
+        </if>
+      </otherwise>  
+    </choose>
+    
+  </select>
+  
+  <select id="selectOptimized" parameterType="map" resultMap="proceedingSituation">
+  select 
+    t1.VALUE as CITY_NAME, 
+    <choose>
+      <when test="queryForm.queryLevel == 0">
+       t2.VALUE as COUNTY_NAME,
+       1 as COUNTY_COUNT,
+      </when>
+    <otherwise>
+      '' as COUNTY_NAME,
+      t.COUNTY_COUNT,  
+    </otherwise>
+    </choose> 
+    t.COUNTY_COUNT_HAS_DATA,
+    t.SITES_COUNT,
+    t.EMPLOYEE_COUNT,
+    t.OBJECTS_COUNT 
+    from (
+      select 
+      a.PARENT, 
+      a.ID,
+      count(distinct a.ID) as COUNTY_COUNT, 
+      count(distinct a.ID, if(c.ID is not null, 1, null)) as COUNTY_COUNT_HAS_DATA,
+      count(distinct b.ID) as SITES_COUNT, 
+      count(distinct c.ID) as OBJECTS_COUNT,
+      count(distinct d.ID) as EMPLOYEE_COUNT
+      from t4_c_area a
+      left join t4_org b on b.AREA = a.ID and b.VALID and b.TYPE='交换点'
+      left join t4_objects c on c.SITE = b.ID
+      left join t4_employee d on d.SITE = b.ID
+      where a.TYPE='COUNTY' and a.VALID
+      <if test="queryForm.queryCity!=null">
+        and a.PARENT = #{queryForm.queryCity, jdbcType=INTEGER}
+      </if>
+      <if test="queryForm.queryArea!=null">
+        and a.ID = #{queryForm.queryArea, jdbcType=INTEGER}
+      </if>
+      group by 
+      <choose>
+        <when test="queryForm.queryLevel==1">a.PARENT</when>
+        <otherwise>a.ID</otherwise>
+      </choose>) t
+    left join t4_c_area t1 on t1.ID= t.PARENT
+  <if test="queryForm.queryLevel ==0">
+    left join t4_c_area t2 on t2.ID = t.ID
+  </if>    
+  <if test="queryForm.queryOrderByClause!=null and !queryForm.queryOrderByClause.empty">
+    order by ${queryForm.queryOrderByClause}
+  </if>
+  limit ${offset}, ${count}
+  </select>
+</mapper>

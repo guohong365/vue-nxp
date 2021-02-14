@@ -1,0 +1,351 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.uc.app.zjjh.persistence.RequirementMapper">
+	<resultMap type="com.uc.app.zjjh.domain.RequirementDetail"	id="requirementDetail">
+		<id column="ID" jdbcType="INTEGER" property="id" />
+		<result column="UUID" jdbcType="CHAR" property="uuid" />
+		<result column="REQUIREMENT" jdbcType="INTEGER" property="requirement" />
+		<result column="CATEGORY" jdbcType="INTEGER" property="category" />
+		<result column="QUANTITY" jdbcType="DECIMAL" property="quantity" />
+		<result column="CONFIRMED" jdbcType="DECIMAL" property="confirmed"/>
+		<result column="COMMENT" jdbcType="VARCHAR" property="comment" />
+		<result column="CATEGORY_NAME" jdbcType="VARCHAR"  property="categoryName" />
+		<result column="UNIT_NAME" jdbcType="VARCHAR" property="unitName"/>
+	</resultMap>
+	<resultMap type="com.uc.app.zjjh.domain.Requirement" id="requirementOnly">
+		<id column="ID" jdbcType="INTEGER" property="id" />
+		<result column="UUID" property="uuid" />
+		<result column="ORG" jdbcType="INTEGER" property="org" />
+		<result column="ORG_NAME" property="orgName" />
+		<result column="YEAR" jdbcType="INTEGER" property="year" />
+		<result column="SHIPPING_ADDRESS" property="shippingAddress" />
+		<result column="RECEIVER" property="receiver" />
+		<result column="RECEIVER_TELE" property="receiverTele" />
+		<result column="PRINCIPAL" property="principal" />
+		<result column="PRINCIPAL_TELE" property="principalTele" />
+		<result column="COMMENT" property="comment" />
+		<result column="APPLICANT" jdbcType="INTEGER" property="applicant" />
+		<result column="APPLICANT_NAME" property="applicantName" />
+		<result column="APPLY_TIME" property="applyTime" />
+		<result column="APPROVER" jdbcType="INTEGER" property="approver" />
+		<result column="APPROVER_NAME" jdbcType="VARCHAR" property="approverName" />
+		<result column="APPROVED_TIME" jdbcType="TIMESTAMP" property="approvedTime" />
+		<result column="CONFIRMER" jdbcType="INTEGER" property="confirmer"/>
+		<result column="CONFIRM_TIME" jdbcType="TIMESTAMP" property="confirmTime"/>
+		<result column="CONFIRMER_NAME" jdbcType="VARCHAR" property="confirmerName"/>
+		<result column="CITY_NAME" property="cityName" />
+		<result column="COUNTY_NAME" property="countyName" />
+		<result column="STATE" property="state"/>
+	</resultMap>
+	<resultMap type="com.uc.app.zjjh.domain.Requirement" id="requirement" extends="requirementOnly">			
+    <collection property="details" select="selectDetails" column="ID" ofType="com.uc.app.zjjh.domain.RequirementDetail" />
+  </resultMap>  
+	<select id="selectDetails" parameterType="java.lang.Long" resultMap="requirementDetail">
+    select
+    a.ID,
+    a.UUID,
+    a.REQUIREMENT,
+    a.CATEGORY,
+    a.QUANTITY,
+    a.CONFIRMED,
+    a.COMMENT,    
+    concat_ws(' ', b.NAME, c.VALUE, d.VALUE) as CATEGORY_NAME,
+    f.VALUE as UNIT_NAME 
+    from t4_requirement_detail a
+    left join t4_category b on b.ID = a.CATEGORY
+    left join t4_c_model c on c.CODE = b.MODEL
+    left join t4_c_specification d on d.CODE = b.SPECIFICATION
+    left join t4_c_classify e on e.CODE = b.CLASSIFY
+    left join t4_c_unit f on f.CODE = b.UNIT
+		where a.REQUIREMENT = #{requirement}
+	</select>
+	<sql id="selectSql">
+		select
+		a.ID,
+		a.UUID,
+		a.ORG,
+		a.YEAR,
+		a.SHIPPING_ADDRESS,
+		a.RECEIVER,
+		a.RECEIVER_TELE,
+		a.PRINCIPAL,
+		a.PRINCIPAL_TELE,
+		a.COMMENT,
+		a.APPLICANT,
+		a.APPLY_TIME,
+		a.APPROVER,
+		a.APPROVED_TIME,
+		a.CONFIRMER,
+		a.CONFIRM_TIME,
+		a.STATE,
+		b.NAME as ORG_NAME,
+		c.NAME as APPLICANT_NAME,
+		d.NAME as APPROVER_NAME,
+		e.NAME as CONFIRMER_NAME,
+		f.VALUE as CITY_NAME,
+		g.VALUE as COUNTY_NAME
+		from t4_requirement a
+		left join t4_org b on b.ID = a.ORG
+		left join t4_user c on c.ID = a.APPLICANT
+		left join t4_user d on d.ID = a.APPROVER
+		left join t4_user e on e.ID = a.CONFIRMER
+		left join t4_c_area f on f.ID = b.CITY
+		left join t4_c_area g on g.ID = b.AREA
+	</sql>
+	<sql id="whereSql">
+		<where>
+			<trim prefixOverrides="and">
+			  <choose>
+			    <when test="queryForm.querySite !=null">
+			      and a.ORG = #{queryForm.querySite, jdbcType=INTEGER}
+			    </when>
+			    <otherwise>
+			      <choose>
+			        <when test="queryForm.queryArea != null">
+			          and b.AREA = #{queryForm.queryArea, jdbcType=INTEGER}
+			        </when>
+			        <when test="queryForm.queryCity != null">
+			            and b.CITY = #{queryForm.queryCity, jdbcType=INTEGER}
+			        </when>
+			      </choose>
+			      <if test="queryForm.siteLimits.size()>0">
+			        and a.ORG in (<foreach collection="queryForm.siteLimits" item="site" separator=",">${site}</foreach>)
+			      </if>
+			    </otherwise>
+			  </choose>
+				<if test="queryForm.queryYearFrom !=null">
+					and a.YEAR &gt;= #{queryForm.queryYearFrom, jdbcType=INTEGER}
+				</if>
+				<if test="queryForm.queryYearTo != null">
+				  and a.YEAR &lt;= #{queryForm.queryYearTo, jdbcType=INTEGER}
+				</if>
+		    <if test="queryForm.queryState != null">
+		      and a.STATE = #{queryForm.queryState, jdbcType=VARCHAR}
+				</if>
+			</trim>
+		</where>
+	</sql>
+	<sql id="orderBySql">
+	   <if test="queryForm!=null and queryForm.queryOrderByClause !=null">
+      order by ${queryForm.queryOrderByClause}
+    </if>
+	</sql>
+	<select id="selectById" resultMap="requirement" parameterType="java.lang.Long">
+		<include refid="selectSql" />
+		where a.ID = #{id}
+	</select>
+	<select id="selectByUuid" resultMap="requirement" parameterType="java.lang.String">
+		<include refid="selectSql" />
+		where a.UUID = #{uuid}
+	</select>
+	<select id="selectIdByUuid" resultType="java.lang.Long" parameterType="java.lang.String">
+	  select ID from t4_requirement where UUID=#{uuid}
+	</select>
+	<select id="selectCountOptimized" resultType="java.lang.Long"	parameterType="com.uc.app.zjjh.forms.RequirementQueryForm">
+		select count(*) from t4_requirement a
+		left join t4_org b on b.ID = a.ORG
+		left join t4_user c on c.ID = a.APPLICANT
+		left join t4_user d on d.ID = a.APPROVER
+		left join t4_c_area e on e.CODE = b.CITY
+		left join t4_c_area f on f.CODE = b.AREA
+		<include refid="whereSql" />
+	</select>
+	<select id="selectOptimized" resultMap="requirement"	parameterType="com.uc.app.zjjh.forms.RequirementQueryForm">
+		<include refid="selectSql" />
+		<include refid="whereSql" />
+    <include refid="orderBySql" />
+		limit ${offset}, ${count}
+	</select>
+	<insert id="insertDetail" parameterType="com.uc.app.zjjh.domain.Requirement">
+		insert into t4_requirement
+		(UUID, ORG, YEAR, SHIPPING_ADDRESS, RECEIVER, RECEIVER_TELE, PRINCIPAL,
+		PRINCIPAL_TELE, COMMENT, APPLICANT, APPLY_TIME, STATE)
+		values 
+		(#{uuid, jdbcType=VARCHAR}, #{org, jdbcType=INTEGER},#{year, jdbcType=INTEGER}, 
+		#{shippingAddress, jdbcType=VARCHAR}, #{receiver, jdbcType=VARCHAR}, 
+		#{receiverTele, jdbcType=VARCHAR},#{principal, jdbcType=VARCHAR}, 
+		#{principalTele, jdbcType=VARCHAR}, #{comment, jdbcType=VARCHAR}, 
+		#{applicant, jdbcType=INTEGER},#{applyTime, jdbcType=TIMESTAMP}, '未审批')
+	</insert>
+	<update id="updateDetail" parameterType="com.uc.app.zjjh.domain.Requirement">
+		update t4_requirement
+		set
+		SHIPPING_ADDRESS=#{shippingAddress, jdbcType=VARCHAR},
+		RECEIVER=#{receiver, jdbcType=VARCHAR},
+		RECEIVER_TELE=#{receiverTele, jdbcType=VARCHAR},
+		PRINCIPAL=#{principal, jdbcType=VARCHAR},
+		PRINCIPAL_TELE=#{principalTele, jdbcType=VARCHAR},
+		COMMENT=#{comment, jdbcType=VARCHAR},
+		APPLICANT=#{applicant, jdbcType=INTEGER},
+		APPLY_TIME=#{applyTime, jdbcType=TIMESTAMP}		
+		where ID = #{id, jdbcType=INTEGER} 
+	</update>
+	<update id="updateDetailSelective" parameterType="com.uc.app.zjjh.domain.Requirement">
+		update t4_requirement
+		<set>
+			<if test="shippingAddress != null">
+				SHIPPING_ADDRESS=#{shippingAddress, jdbcType=VARCHAR},
+			</if>
+			<if test="receiver !=null">2969441+5
+				RECEIVER=#{receiver, jdbcType=VARCHAR},
+			</if>
+			<if test="receiverTele != null">
+				RECEIVER_TELE=#{receiverTele, jdbcType=VARCHAR},
+			</if>
+			<if test="principal!=null">
+				PRINCIPAL=#{principal, jdbcType=VARCHAR},
+			</if>
+			<if test="principalTele!=null">
+				PRINCIPAL_TELE=#{principalTele, jdbcType=VARCHAR},
+			</if>
+			<if test="comment!=null">
+				COMMENT=#{comment, jdbcType=VARCHAR},
+			</if>
+			<if test="applyTime!=null">
+				APPLY_TIME=#{applyTime, jdbcType=TIMESTAMP},
+			</if>
+			<if test="approver!=null">
+				APPROVER=#{approver, jdbcType=INTEGER},
+			</if>
+			<if test="approvedTime!=null">
+				APPROVED_TIME=#{approvedTime, jdbcType=TIMESTAMP},
+			</if>
+			<if test="confirmer!=null">
+			  CONFIRMER = #{confirmer, jdbcType=INTEGER},
+			</if>
+			<if test="state !=null">
+			  STATE = #{state, jdbcType=VARCHAR},
+			</if>
+		</set>
+		where ID = #{id, jdbcType=INTEGER}
+	</update>
+	<delete id="deleteDetail" parameterType="com.uc.app.zjjh.domain.Requirement">
+	 delete a, b 
+	 from t4_requirement a
+	 left join t4_requirement_detail b on b.REQUIREMENT = a.ID 
+	 where a.ID = #{id}
+	</delete>
+	<update id="updateDetailConfirmed" parameterType="map" >
+	  update t4_requirement_detail 
+	  set CONFIRMED = #{confirmed,jdbcType=DECIMAL}
+	  where ID = #{detailId, jdbcType=INTEGER};
+	</update>
+	<insert id="insertRequirementDetail" parameterType="com.uc.app.zjjh.domain.RequirementDetail">
+	  insert into t4_requirement_detail (UUID, REQUIREMENT, CATEGORY, QUANTITY, CONFIRMED, COMMENT)
+	  values
+	  (UUID(), #{requirement, jdbcType=INTEGER}, #{category, jdbcType=INTEGER}, #{quantity, jdbcType=DECIMAL}, null, #{comment})
+	</insert>
+	<update id="updateRequirementDetail" parameterType="com.uc.app.zjjh.domain.RequirementDetail">
+	  update t4_requirement_detail 
+	  set
+	  QUANTITY = #{quantity, jdbcType=DECIMAL},
+	  CONFIRMED = #{confirmed, jdbcType=DECIMAL},
+	  COMMENT = #{comment, jdbcType=VARCHAR}
+	  where ID = #{id, jdbcType=INTEGER}
+	</update>
+	<update id="updateRequirementDetailSelective" parameterType="com.uc.app.zjjh.domain.RequirementDetail">
+	  update t4_requirement_detail
+	  <set>
+	    <if test="category !=null">
+	      CATEGORY = #{category, jdbcType=INTEGER},
+	    </if>
+	    <if test="quantity !=null">
+	      QUANTITY = #{quantity, jdbcType=DECIMAL},
+	    </if>
+	    <if test="comment !=null">
+	      COMMENT = #{comment, jdbcType=VARCHAR},
+	    </if>
+	    <if test="confirmed != null">
+	      CONFIRMED = #{confirmed, jdbcType=DECIMAL},
+	    </if>
+	  </set>
+	  where ID = #{id, jdbcType=INTEGER}
+	</update>
+	<delete id="deleteRequirementDetail" parameterType="map">
+	  delete from t4_requirement_detail where ID = #{detailId, jdbcType=INTEGER}
+	</delete>
+	<sql id="selectLastYearByOrg">
+	select max(t1.YEAR) 
+	from t4_requirement t1 
+	where t1.ORG=#{orgId,jdbcType=INTEGER}
+	group by t1.ORG
+	</sql>
+	<select id="selectOrgLastRequirement" parameterType="java.lang.Long" resultMap="requirement">
+	  <include refid="selectSql" />	  
+	  where 
+	  a.ORG = #{orgId, jdbcType=INTEGER}
+	  and a.YEAR=(<include refid="selectLastYearByOrg"/>)
+	  order by a.APPLY_TIME DESC
+	  limit 1
+	</select>
+	<insert id="insertRequirementDetails" parameterType="map">
+	 insert into t4_requirement_detail (UUID, REQUIREMENT, CATEGORY, QUANTITY, CONFIRMED, COMMENT)
+	 values
+	 <foreach collection="details" item="detail" separator=",">
+	   (UUID(), #{requirement, jdbcType=INTEGER}, 
+	   #{detail.category, jdbcType=INTEGER}, 
+	   #{detail.quantity, jdbcType=DECIMAL}, NULL, 
+	   #{detail.comment, jdbcType=VARCHAR})
+	 </foreach>
+	</insert>
+	<delete id="deleteRequirementDetails" parameterType="java.lang.Long">
+	  delete from t4_requirement_detail 
+	  where REQUIREMENT = #{requirement, jdbcType=INTEGER}
+	</delete>
+	<select id="selectOrgApplyCountByYear" parameterType="map" resultType="java.lang.Long">
+	  select COUNT(*) from t4_requirement
+	  where ORG = #{orgId, jdbcType=INTEGER} and YEAR = #{year, jdbcType=INTEGER} 	 
+	</select>
+	
+	<sql id="selectStateSql">
+	  select 
+	    IFNULL(b.YEAR, ${queryForm.queryYearFrom}) as YEAR,
+	    a.CITY as CITY,
+	    a.AREA as COUNTY,
+	    a.ID as ORG,
+	    a.NAME as ORG_NAME,
+	    IFNULL(b.STATE, '未申报') as STATE,
+	    c.VALUE as CITY_NAME,
+	    d.VALUE as COUNTY_NAME
+	  from t4_org a
+	  left join t4_requirement b on b.ORG = a.ID and b.YEAR = #{queryForm.queryYearFrom, jdbcType=INTEGER}
+	  left join t4_c_area c on c.ID = a.CITY
+	  left join t4_c_area d on d.ID = a.AREA    
+	</sql>
+	<sql id="stateWhereSql">
+	  <where>
+	    a.VALID and a.ID &lt;&gt; 1
+	    <choose>
+        <when test="queryForm.queryArea !=null">
+          and a.AREA = #{queryForm.queryArea, jdbcType=INTEGER}
+        </when>
+        <when test="queryForm.queryCity != null">
+          and a.CITY = #{queryForm.queryCity, jdbcType=INTEGER}
+        </when>
+      </choose>
+      <if test="queryForm.queryState != null">
+        <choose>
+          <when test="queryForm.queryState == '未申报'">
+            and b.ID is null
+          </when>
+          <otherwise>
+            and b.STATE = #{queryForm.queryState, jdbcType=VARCHAR}
+          </otherwise> 
+        </choose>
+      </if>
+	  </where>
+	</sql>
+	
+	<select id="selectApplicationStateCount" parameterType="com.uc.app.zjjh.forms.RequirementQueryForm" resultType="java.lang.Long">
+	  select count(*) from t4_org a
+	  left join t4_requirement b on b.ORG = a.ID and b.YEAR = #{queryForm.queryYearFrom, jdbcType=INTEGER}
+	  <include refid="stateWhereSql" />
+	</select>
+	
+	<select id="selectApplicationState" resultMap="requirementOnly" parameterType="map">
+	  <include refid="selectStateSql" />
+    <include refid="stateWhereSql" />
+    <include refid="orderBySql" />
+    limit ${offset}, ${count}
+	</select>
+</mapper>

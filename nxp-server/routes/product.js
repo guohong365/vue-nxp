@@ -1,7 +1,7 @@
 var express = require("express");
 var router = express.Router();
 
-router.get("/", function (req, res, next) {
+router.get("/", function (req, res) {
   var data = {
     code: 0,
     data: { name: "aaa", pwd: "123" },
