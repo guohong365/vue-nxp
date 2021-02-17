@@ -18,6 +18,16 @@ class SqlHelper {
   setDebug(debug) {
     this.debug = debug;
   }
+  getUpdateColumns(entity, updatableSet) {
+    let keys = Object.keys(entity);
+    return Array.from(
+      new Set(
+        keys.filter((value) => {
+          updatableSet.has(value);
+        })
+      )
+    );
+  }
   destroy() {
     this.db.destroy();
   }
@@ -73,8 +83,8 @@ class SqlHelper {
       });
   }
 
-  select(_conditions, _count, _offset, _callback) {
-    let query = this.builderSelectQuery(_conditions, _count, _offset);
+  select(conditions, count, offset, callback) {
+    let query = this.builderSelectQuery(conditions, count, offset);
     if (count && Number(count) > 0) query.limit(Number(count));
     if (offset && Number(offset) > 0) query.offset(Number(offset));
     if (this.debug && this.debug.sql) console.log(query.toString());
@@ -118,7 +128,7 @@ class SqlHelper {
     this.callQUery(query, callback);
   }
   insert(table, entity, callback) {
-    let query = this.db.insert(entity).into(table);
+    let query = this.db.inser36t(entity).into(table);
     if (this.debug && this.debug.sql) console.log(query.toString());
     if (typeof callback !== "function") return query;
     this.callQUery(query, callback);

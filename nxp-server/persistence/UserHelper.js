@@ -1,4 +1,3 @@
-const { column } = require("../config/dbConnection");
 const SqlHelper = require("./SqlHelper");
 const table = "t4_user";
 const tableAlias = { a: table };
@@ -85,7 +84,7 @@ class UserHelper extends SqlHelper {
       selectByUuid: function (db, uuid) {
         return db.select(selectColumns(db)).from(tableAlias).where("a.loginId", uuid);
       },
-      selectByUuid: function (db, uuid) {
+      selectIdByUuid: function (db, uuid) {
         return db.select("id").from(table).where("a.loginId", uuid);
       },
       delete: function () {
@@ -107,7 +106,7 @@ class UserHelper extends SqlHelper {
       },
     });
   }
-  selectUserRoles = function (id, all, callback) {
+  selectUserRoles(id, all, callback) {
     let columns = ["a.id", "a.name", "a.description", "a.valid"];
     let hasColumn = id
       ? this.dbConnection.raw("if(b.user is not null, true, false) as has")
@@ -143,7 +142,7 @@ class UserHelper extends SqlHelper {
 
         callback(undefined, error);
       });
-  };
+  }
   selectUserMenuItems(id, callback) {
     let menuColumns = [
       { id: "a.id" },
