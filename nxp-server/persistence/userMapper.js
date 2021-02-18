@@ -1,4 +1,4 @@
-const Mapper = require("./mapper");
+const Mapper = require("./Mapper");
 
 class UserMapper extends Mapper {
   constructor(debug) {
@@ -82,6 +82,7 @@ class UserMapper extends Mapper {
       .leftJoin({ d: "t4_c_area" }, "b.area", "d.id")
       .leftJoin({ e: "t4_user" }, "e.id", "a.creator")
       .leftJoin({ f: "t4_user" }, "f.id", "a.canceler");
+    console.log(builder.toString());
   }
   buildOptimizedWhere(builder, queryForm) {
     if (queryForm.loginId) builder.where("a.login_id", "like", `${queryForm.loginId}%`);

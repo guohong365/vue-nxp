@@ -2,7 +2,6 @@ const createError = require("http-errors");
 const express = require("express");
 const path = require("path");
 const cors = require("cors");
-
 const cookieParser = require("cookie-parser");
 const logger = require("morgan");
 
@@ -25,10 +24,7 @@ app.use(cors({ origin: ["http://localhost:8080"], methods: ["GET", "POST"] }));
 app.all("*", function (req, res, next) {
   res.header("Access-Control-Allow-Origin", "http://localhost:8080");
   res.header("Access-Control-Allow-Headers", "Content-Type");
-  res.header(
-    "Access-Controll-Allow-Methods",
-    "PUT, POST, GET, DELETE, OPTIONS"
-  );
+  res.header("Access-Controll-Allow-Methods", "PUT, POST, GET, DELETE, OPTIONS");
   next();
 });
 app.use("/", indexRouter);
@@ -40,7 +36,7 @@ app.use(function (req, res, next) {
 });
 
 // error handler
-app.use(function (err, req, res, next) {
+app.use(function (err, req, res) {
   // set locals, only providing error in development
   res.locals.message = err.message;
   res.locals.error = req.app.get("env") === "development" ? err : {};

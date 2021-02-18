@@ -13,7 +13,7 @@ class AbstractMapper {
     return "uuid";
   }
   columns() {
-    return "*";
+    return undefined;
   }
   idAlias() {
     return "id";
@@ -53,8 +53,8 @@ class Mapper extends AbstractMapper {
   callQuery(query, callback) {
     query
       .then((results) => {
-        callback(results);
         if (this.debug && this.debug.data) console.log(results);
+        callback(results);
       })
       .catch((error) => {
         if (this.debug) console.log(error);
@@ -67,7 +67,7 @@ class Mapper extends AbstractMapper {
   }
 
   selectOptimizedQuery(queryForm) {
-    let query = this.select(this.columns()).from(this.tableAlias());
+    let query = this.db.select(this.columns()).from(this.tableAlias());
     this.buildJoins(query, queryForm);
     this.buildOptimizedWhere(query, queryForm);
     this.buildGroupBy(query, queryForm);
@@ -84,16 +84,17 @@ class Mapper extends AbstractMapper {
     if (this.debug && this.debug.sql) console.log(query.toString());
     if (typeof callback !== "function") return query;
 
-    this.callQUery(query, callback);
+    this.callQuery(query, callback);
   }
   selectCountOptimized(queryForm, callback) {
-    let query = this.count("*").from(this.selectOptimizedQuery(queryForm).as("all"));
+    let query = this.db.count(this.id() + " as count").from(this.selectOptimizedQuery(queryForm).as("all"));
     if (this.debug && this.debug.sql) console.log(query.toString());
     if (typeof callback !== "function") return query;
     this.callQuery(query, callback);
   }
   selectById(id, callback) {
-    let query = this.select(this.columns()).from(this.tableAlias());
+    console.log("columns:%o", this.columns());
+    let query = this.db.select(this.columns()).from(this.tableAlias());
     this.buildJoins(query);
     query.where(this.idAlias(), id);
 
@@ -116,7 +117,7 @@ class Mapper extends AbstractMapper {
     this.callQuery(query, callback);
   }
   selectByUuid(uuid, callback) {
-    let query = this.select(this.columns()).form(this.tableAlias);
+    let query = this.db.select(this.columns()).from(this.tableAlias());
     this.buildJoins(query);
     query.where(this.uuidAlias(), uuid);
 
